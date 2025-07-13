@@ -23,5 +23,8 @@
     "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "dependencies": {
+    "express": "^5.1.0"
+  }
 }
