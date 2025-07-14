@@ -6,4 +6,7 @@ export interface RateLimiterOptions {
   message?: any;
 }
 
-export interface BucketState {}
+export interface BucketState {
+  tokens: number;
+  lastRefill: number;
+}
