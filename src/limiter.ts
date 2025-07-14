@@ -43,7 +43,6 @@ class RateLimiter {
   }
 
   public async handleBucketRefill() {
-    console.log("Bucket refill handle...");
     this.lastRefill = this.usersBucket.lastRefill;
     const now = new Date().getTime();
     const timePassed = now - this.lastRefill;
@@ -62,11 +61,10 @@ class RateLimiter {
       ...this.usersBucket,
       tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,
     };
-    console.log("bucket refill complete: ", this.usersBucket);
+    console.log("bucket after refill: ", this.usersBucket);
   }
 
   private async handleBucketNotExisting() {
-    console.log("Bucket does not exist");
     this.bucketStore = {
       tokens: this.tokenLimit - 1,
       lastRefill: new Date().getTime(),
@@ -76,7 +74,6 @@ class RateLimiter {
   }
 
   private async handleBucketExisting() {
-    console.log("Bucket does exist");
     this.bucketStore = {
       tokens: this.usersBucket.tokens - 1,
       lastRefill: new Date().getTime(),
