@@ -14,6 +14,14 @@ class MemoryStore implements Store {
   async set(key: string, state: BucketState): Promise<void> {
     this.buckets.set(key, state);
   }
+
+  async delete(key: string) {
+    this.buckets.delete(key);
+  }
+
+  async getAll(): Promise<any | null> {
+    return this.buckets;
+  }
 }
 
 export default MemoryStore;
