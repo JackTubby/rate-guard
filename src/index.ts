@@ -2,10 +2,14 @@ import express, { NextFunction, Request, Response } from "express"; // remove ex
 import { RateLimiterOptions } from "./types";
 import RateLimiter from "./limiter";
 import MemoryStore from "./store/memory";
+import CleanUp from "./cleanup";
 
 export function createRateLimiter(options: RateLimiterOptions) {
   const store = options.store || new MemoryStore();
   const limiter = new RateLimiter(options, store);
+  if (options.enableCleanup !== false) {
+    startPeriodicCleanup(store, options.cleanupInterval);
+  }
 
   return async function rateLimiter(
     req: Request,
@@ -28,6 +32,11 @@ export function createRateLimiter(options: RateLimiterOptions) {
       return res.status(429).json({ message: "Too many requests" });
     }
   };
+}
+
+async function startPeriodicCleanup(store: any, interval: number = 3600000) {
+  const cleanup = new CleanUp(store, interval);
+  cleanup.scheduleCleanup();
 }
 
 const app = express();

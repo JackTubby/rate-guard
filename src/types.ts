@@ -4,6 +4,8 @@ export interface RateLimiterOptions {
   store?: BucketState | null;
   status?: number;
   message?: any;
+  enableCleanup?: boolean;
+  cleanupInterval?: number;
 }
 
 export interface BucketState {
