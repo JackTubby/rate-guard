@@ -16,12 +16,15 @@ export function createRateLimiter(options: RateLimiterOptions) {
     if (!ipAddress) {
       return next();
     }
+    console.log("incoming ip address: ", ipAddress);
 
     const canProceed = await limiter.checkLimit(ipAddress);
 
     if (canProceed) {
+      console.log("Next...");
       next();
     } else {
+      console.log("Too many requests");
       return res.status(429).json({ message: "Too many requests" });
     }
   };
