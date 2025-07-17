@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express" // remove express once testing is setup
+import { NextFunction, Request, Response } from "express"
 import { RateLimiterOptions } from "./types"
 import RateLimiter from "./limiter"
 import MemoryStore from "./store/memory"
@@ -34,8 +34,3 @@ async function startPeriodicCleanup(store: any, interval: number = 3600000) {
 	const cleanup = new CleanUp(store, interval)
 	cleanup.scheduleCleanup()
 }
-
-const app = express()
-app.use(createRateLimiter({}))
-app.get("/", (req, res) => res.send("OK"))
-app.listen(3000)
