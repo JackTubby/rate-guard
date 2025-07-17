@@ -17,7 +17,6 @@ class CleanUp {
   private async cleanupOldBuckets() {
     const getBuckets = await this.store.getAll();
     if (getBuckets.size === 0) {
-      console.log("No buckets exist to clean up...");
       return true;
     } else {
       const now = new Date().getTime();
@@ -25,7 +24,6 @@ class CleanUp {
       getBuckets.forEach((i: any, k: any) => {
         const timePassed = now - i.lastRefill;
         if (timePassed >= this.interval) {
-          console.log("Cleaning up bucket: ", k);
           deletions.push(this.store.delete(k));
         }
       });
