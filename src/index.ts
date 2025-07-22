@@ -1,36 +1,40 @@
-import { NextFunction, Request, Response } from "express"
-import { RateLimiterOptions } from "./types"
-import RateLimiter from "./limiter"
-import MemoryStore from "./store/memory"
-import CleanUp from "./cleanup"
+import { NextFunction, Request, Response } from "express";
+import { RateLimiterOptions } from "./types";
+import MemoryStore from "./store/memory";
+import CleanUp from "./cleanup";
+import RateLimiterFactory from "./limiter";
 
 export function createRateLimiter(options: RateLimiterOptions) {
-	const store = options.store || new MemoryStore()
-	const limiter = new RateLimiter(options, store)
-	if (options.enableCleanup !== false) {
-		startPeriodicCleanup(store, options.cleanupInterval)
-	}
+  const store = options.store || new MemoryStore();
+  const limiter = RateLimiterFactory.create("tokenBucket", options, store);
+  if (options.enableCleanup !== false) {
+    startPeriodicCleanup(store, options.cleanupInterval);
+  }
 
-	return async function rateLimiter(req: Request, res: Response, next: NextFunction) {
-		const ipAddress = req.ip || ""
-		if (!ipAddress) {
-			return next()
-		}
-		console.log("incoming ip address: ", ipAddress)
+  return async function rateLimiter(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const key = req.ip || "";
+    if (!key) {
+      return next();
+    }
+    console.log("incoming ip address: ", key);
 
-		const canProceed = await limiter.checkLimit(ipAddress)
+    const canProceed = await limiter.checkLimit(key);
 
-		if (canProceed.success) {
-			console.log("Next...")
-			next()
-		} else {
-			console.log("Too many requests")
-			return res.status(429).json({ message: "Too many requests" })
-		}
-	}
+    if (canProceed.success) {
+      console.log("Next...");
+      next();
+    } else {
+      console.log("Too many requests");
+      return res.status(429).json({ message: "Too many requests" });
+    }
+  };
 }
 
 async function startPeriodicCleanup(store: any, interval: number = 3600000) {
-	const cleanup = new CleanUp(store, interval)
-	cleanup.scheduleCleanup()
+  const cleanup = new CleanUp(store, interval);
+  cleanup.scheduleCleanup();
 }
