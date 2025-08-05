@@ -1,11 +1,12 @@
 export interface RateLimiterOptions {
-  ipAddress?: string;
-  timeFrame?: number;
   store?: BucketState | null;
+  cleanupInterval?: number;
+  enableCleanup?: boolean;
+  timeFrame?: number;
+  tokenLimit?: number;
+  ipAddress?: string;
   status?: number;
   message?: any;
-  enableCleanup?: boolean;
-  cleanupInterval?: number;
 }
 
 export interface BucketState {
