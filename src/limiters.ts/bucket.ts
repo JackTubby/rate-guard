@@ -16,6 +16,7 @@ class BucketLimiter {
     this.bucketStore = {
       tokens: 0,
       lastRefill: 0,
+      formattedLastRefill: "",
     };
     this.ipAddress = "";
   }
@@ -54,7 +55,7 @@ class BucketLimiter {
     this.lastRefill = this.usersBucket.lastRefill;
     const now = new Date().getTime();
     const timePassed = now - this.lastRefill;
-    const tokensToAdd = Math.floor(
+    const tokensToAdd = Math.floor( 
       (timePassed / this.timeFrame) * this.tokenLimit
     );
     const currentTokens = this.usersBucket.tokens;
@@ -63,6 +64,7 @@ class BucketLimiter {
     this.bucketStore = {
       tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,
       lastRefill: new Date().getTime(),
+      formattedLastRefill: new Date().toISOString(),
     };
     await this.store.set(this.ipAddress, this.bucketStore);
     this.usersBucket = {
@@ -75,6 +77,7 @@ class BucketLimiter {
     this.bucketStore = {
       tokens: this.tokenLimit - 1,
       lastRefill: new Date().getTime(),
+      formattedLastRefill: new Date().toISOString(),
     };
     await this.store.set(this.ipAddress, this.bucketStore);
     return true;
@@ -84,6 +87,7 @@ class BucketLimiter {
     this.bucketStore = {
       tokens: this.usersBucket.tokens - 1,
       lastRefill: new Date().getTime(),
+      formattedLastRefill: new Date().toISOString(),
     };
     await this.store.set(this.ipAddress, this.bucketStore);
     return true;
@@ -93,6 +97,7 @@ class BucketLimiter {
     this.bucketStore = {
       tokens: 0,
       lastRefill: new Date().getTime(),
+      formattedLastRefill: new Date().toISOString(),
     };
     await this.store.set(this.ipAddress, this.bucketStore);
     return false;

@@ -12,4 +12,5 @@ export interface RateLimiterOptions {
 export interface BucketState {
   tokens: number;
   lastRefill: number;
+  formattedLastRefill: string;
 }
