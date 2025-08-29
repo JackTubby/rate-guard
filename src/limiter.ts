@@ -11,7 +11,7 @@ class RateLimiterFactory {
         store = new MemoryStore()
         break
       case 'redis':
-        store = new RedisStore()
+        store = new RedisStore(options.redisClient)
         break
       default:
         throw new Error(`Unknown store type: ${storeType}`)

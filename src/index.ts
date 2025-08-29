@@ -1,11 +1,10 @@
 import { NextFunction, Request, Response } from 'express'
 import { RateLimiterOptions, StoreType } from './types'
-import MemoryStore from './store/memory'
 import CleanUp from './cleanup'
 import RateLimiterFactory from './limiter'
 
 export function createRateLimiter(options: RateLimiterOptions) {
-  const store: StoreType = options.storeType || 'memory'
+  const store: StoreType = options.storeType || 'memory' // Todo: move all this to the factory and just pass the options
   const limiter = RateLimiterFactory.create('tokenBucket', options, store) // Todo: default tokenBucket but can choose algo of choice
   if (options.enableCleanup !== false) {
     startPeriodicCleanup(store, options.cleanupInterval)

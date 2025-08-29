@@ -2,6 +2,8 @@ import { BucketState } from '../types'
 interface Store {
   get(key: string): Promise<BucketState | null>
   set(key: string, state: BucketState): Promise<void>
+  delete(key: string): Promise<void>
+  getAll(): Promise<Map<string, BucketState>>
 }
 
 class MemoryStore implements Store {
