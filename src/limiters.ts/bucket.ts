@@ -10,9 +10,9 @@ class BucketLimiter {
   usersBucket: any
 
   constructor(options: any, store: any) {
-    this.timeFrame = options.timeFrame || 900000 // milliseconds (15 mins)
+    this.timeFrame = options.timeFrame || 600000 // milliseconds (10 mins)
     this.store = store
-    this.tokenLimit = options.tokenLimit || 50
+    this.tokenLimit = options.tokenLimit || 100
     this.bucketStore = {
       tokens: 0,
       lastRefill: 0,
