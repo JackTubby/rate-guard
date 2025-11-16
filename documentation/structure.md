@@ -12,3 +12,10 @@ rate-limiter/
 ├── package.json
 ├── tsconfig.json
 ├── README.md
+
+
+All stores will follow the same structre
+- get - get the item from the store
+- set - set the item in the store
+- delete - delete the item in store
+- getall - get all items in the store
