@@ -1,11 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { RateLimiterOptions } from "./types";
-import MemoryStore from "./store/memory";
 import CleanUp from "./cleanup";
 import RateLimiterFactory from "./limiter";
 
 export function createRateLimiter(options: RateLimiterOptions) {
-  const store = options.store || new MemoryStore();
+  const store = options.store || "memory"
   const limiter = RateLimiterFactory.create("tokenBucket", options, store);
   if (options.enableCleanup !== false) {
     startPeriodicCleanup(store, options.cleanupInterval);
