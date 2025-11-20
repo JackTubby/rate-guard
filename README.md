@@ -28,7 +28,7 @@ app.get('/', (req, res) => res.send('Hello World!'));
 
 app.listen(3000);
 ```
-Your API is now protected with rate limiting. Test it by making requests to http://localhost:3000 - after 100 requests within 15 minutes, you'll get a 429 Too Many Requests response.
+Your API is now protected with rate limiting. Test it by making requests to your protected endpoint - after 100 requests within 15 minutes, you'll get a 429 Too Many Requests response.
 
 ## Features
 
