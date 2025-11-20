@@ -10,9 +10,6 @@ export function createRateLimiter(options: RateLimiterOptions) {
   }
   const algorithm = options.type
   const limiter = RateLimiterFactory.create(algorithm, options, storeType);
-  // if (options.enableCleanup !== false) {
-    //   startPeriodicCleanup(store, options.cleanupInterval);
-    // }
     
     return async function rateLimiter(
       req: Request,
