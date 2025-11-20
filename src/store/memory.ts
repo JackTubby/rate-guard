@@ -1,4 +1,4 @@
-import { BucketState } from "../types";
+import { BucketState } from "../../types/types";
 interface Store {
   get(key: string): Promise<BucketState | null>;
   set(key: string, state: BucketState): Promise<void>;

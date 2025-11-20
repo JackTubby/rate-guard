@@ -1,6 +1,6 @@
 import MemoryStore from "../store/memory";
 import CustomRedisStore from "../store/redis";
-import { BucketState } from "../types";
+import { BucketState } from "../../types/types";
 
 class BucketLimiter {
   ipAddress: string | null;

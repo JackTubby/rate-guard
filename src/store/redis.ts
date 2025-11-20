@@ -1,4 +1,4 @@
-import { BucketState } from "../types";
+import { BucketState } from "../../types/types";
 
 class CustomRedisStore {
   redis: any;
