@@ -7,6 +7,8 @@ export interface RateLimiterOptions {
   ipAddress?: string;
   status?: number;
   message?: any;
+  storeType: string;
+  type: string;
 }
 
 export interface BucketState {

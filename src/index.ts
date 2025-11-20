@@ -4,21 +4,25 @@ import CleanUp from "./cleanup";
 import RateLimiterFactory from "./limiter";
 
 export function createRateLimiter(options: RateLimiterOptions) {
-  const store = options.store || "memory"
-  const limiter = RateLimiterFactory.create("tokenBucket", options, store);
-  if (options.enableCleanup !== false) {
-    startPeriodicCleanup(store, options.cleanupInterval);
+  const storeType = options.storeType || "memory"
+  if (!options.type) {
+    throw new Error("A type must be passed")
   }
-
-  return async function rateLimiter(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    const key = req.ip || "";
-    if (!key) {
-      return next();
-    }
+  const algorithm = options.type
+  const limiter = RateLimiterFactory.create(algorithm, options, storeType);
+  // if (options.enableCleanup !== false) {
+    //   startPeriodicCleanup(store, options.cleanupInterval);
+    // }
+    
+    return async function rateLimiter(
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) {
+      const key = req.ip || "";
+      if (!key) {
+        return next();
+      }
     console.log("incoming ip address: ", key);
 
     const canProceed = await limiter.checkLimit(key);

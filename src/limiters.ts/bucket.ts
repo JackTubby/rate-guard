@@ -1,4 +1,5 @@
 import MemoryStore from "../store/memory";
+import CustomRedisStore from "../store/redis";
 import { BucketState } from "../types";
 
 class BucketLimiter {
@@ -10,10 +11,14 @@ class BucketLimiter {
   bucketStore: BucketState;
   usersBucket: any;
 
-  constructor(options: any, store: any) {
+  constructor(options: any, storeType: any) {
     this.timeFrame = options.timeFrame || 900000; // milliseconds (15 mins)
-    if (store === "memory") {
+    if (storeType === "memory") {
       this.store = new MemoryStore();
+    } else if (storeType === "redis") {
+      console.log("Entering redis if...");
+      this.store = new CustomRedisStore(options.store);
+      console.log("Store initialised - ", this.store);
     }
     this.tokenLimit = options.tokenLimit || 50;
     this.bucketStore = {
@@ -26,6 +31,7 @@ class BucketLimiter {
 
   public async checkLimit(ipAddress: string) {
     this.ipAddress = ipAddress;
+    console.log("About to call get in checkLimit func");
     this.usersBucket = await this.store.get(ipAddress);
 
     // if le bucket does not exist
