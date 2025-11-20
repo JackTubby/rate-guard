@@ -65,8 +65,6 @@ Your API is now protected with rate limiting. Test it by making requests to your
 - **Cleanup** (Lifecycle) - Automatic memory management and optimization
 ```
 
-![Rate Limiter Logo](./imgs/structure-path.png)
-
 ### Component Responsibilities
 
 ##### Middleware Layer
