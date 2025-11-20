@@ -1,0 +1,2 @@
+- Change IP refrences to generic - following readme spec
+- Actually implement cleanup properly
