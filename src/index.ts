@@ -26,7 +26,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
         req.ip ||
         req.connection.remoteAddress ||
         null;
-      if (!key) {
+      if (!key || typeof key != "string") {
         throw new RateGuardError(
           "RGEC-0006",
           "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
