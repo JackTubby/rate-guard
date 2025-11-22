@@ -16,9 +16,7 @@ class BucketLimiter {
     if (storeType === "memory") {
       this.store = new MemoryStore();
     } else if (storeType === "redis") {
-      console.log("Entering redis if...");
       this.store = new CustomRedisStore(options.store);
-      console.log("Store initialised - ", this.store);
     }
     this.tokenLimit = options.tokenLimit || 50;
     this.bucketStore = {
@@ -31,7 +29,6 @@ class BucketLimiter {
 
   public async checkLimit(key: string) {
     this.key = key;
-    console.log("About to call get in checkLimit func");
     this.usersBucket = await this.store.get(key);
 
     // if le bucket does not exist
@@ -44,9 +41,7 @@ class BucketLimiter {
     }
     // if le bucket does exist
     else {
-      // console.log("Before refill - Bucket:", this.usersBucket);
       await this.handleBucketRefill();
-      // console.log("After refill - Bucket:", this.usersBucket);
 
       if (this.usersBucket.tokens === 0) {
         return { success: false, message: "No tokens left" };
@@ -73,13 +68,6 @@ class BucketLimiter {
     );
     const timeConsumed = tokensActuallyAdded / refillRate;
     const isOverspill = currentTokens + tokensToAdd > this.tokenLimit;
-    console.log("Refill calculation:", {
-      tokensToAdd,
-      tokensActuallyAdded,
-      timeConsumed,
-      oldLastRefill: this.lastRefill,
-      newLastRefill: this.lastRefill + timeConsumed,
-    });
 
     this.bucketStore = {
       tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,

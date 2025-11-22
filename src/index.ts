@@ -32,15 +32,12 @@ export function createRateLimiter(options: RateLimiterOptions) {
           "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
         );
       }
-      console.log("incoming key: ", key);
 
       const canProceed = await limiter.checkLimit(key);
 
       if (canProceed.success) {
-        console.log("Next...");
         next();
       } else {
-        console.log("Too many requests");
         return res.status(429).json({ message: "Too many requests" });
       }
     } catch (err) {

@@ -8,7 +8,6 @@ class MemoryStore implements Store {
 	private buckets = new Map<string, BucketState>();
 
 	async get(key: string): Promise<BucketState | null> {
-		console.log("Bucket: ", this.buckets.get(key)); 
 		return this.buckets.get(key) || null;
 	}
 
