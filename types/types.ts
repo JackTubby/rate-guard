@@ -4,7 +4,7 @@ export interface RateLimiterOptions {
   enableCleanup?: boolean;
   timeFrame?: number;
   tokenLimit?: number;
-  value: string;
+  value?: string;
   status?: number;
   message?: any;
   storeType: string;

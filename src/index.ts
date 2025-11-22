@@ -6,39 +6,51 @@ import { RateGuardError } from "./errors/errors";
 import { criticalOptions } from "../helpers/entry-helpers";
 
 export function createRateLimiter(options: RateLimiterOptions) {
-  const validateOptions = criticalOptions(options)
+  const validateOptions = criticalOptions(options);
   if (validateOptions.length) {
-    throw new RateGuardError(
-      "RGEC-0001",
-      "Missing option",
-      `Missing critical options: ${validateOptions.join(", ")}`,
-      null
-    )
+    throw new RateGuardError("RGEC-0001", `${validateOptions.join(", ")}`);
   }
 
-  const storeType = options.storeType || "memory"
-  const algorithm = options.type
+  const storeType = options.storeType || "memory";
+  const algorithm = options.type;
   const limiter = RateLimiterFactory.create(algorithm, options, storeType);
-    
-    return async function rateLimiter(
-      req: Request,
-      res: Response,
-      next: NextFunction
-    ) {
-      const key = req.ip || "";
+
+  return async function rateLimiter(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const key =
+        req.headers["x-rate-guard-key"] ||
+        req.ip ||
+        req.connection.remoteAddress ||
+        null;
       if (!key) {
-        return next();
+        throw new RateGuardError(
+          "RGEC-0006",
+          "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
+        );
       }
-    console.log("incoming ip address: ", key);
+      console.log("incoming key: ", key);
 
-    const canProceed = await limiter.checkLimit(key);
+      const canProceed = await limiter.checkLimit(key);
 
-    if (canProceed.success) {
-      console.log("Next...");
-      next();
-    } else {
-      console.log("Too many requests");
-      return res.status(429).json({ message: "Too many requests" });
+      if (canProceed.success) {
+        console.log("Next...");
+        next();
+      } else {
+        console.log("Too many requests");
+        return res.status(429).json({ message: "Too many requests" });
+      }
+    } catch (err) {
+      if (err instanceof RateGuardError) {
+        return res.status(500).json({
+          code: err.code,
+          name: err.name,
+          message: err.message,
+        });
+      }
     }
   };
 }
