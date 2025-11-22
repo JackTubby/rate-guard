@@ -3,7 +3,7 @@ import CustomRedisStore from "../store/redis";
 import { BucketState } from "../../types/types";
 
 class BucketLimiter {
-  ipAddress: string | null;
+  key: string | null;
   timeFrame: number;
   lastRefill!: number;
   store: any;
@@ -26,13 +26,13 @@ class BucketLimiter {
       lastRefill: 0,
       formattedLastRefill: "",
     };
-    this.ipAddress = "";
+    this.key = "";
   }
 
-  public async checkLimit(ipAddress: string) {
-    this.ipAddress = ipAddress;
+  public async checkLimit(key: string) {
+    this.key = key;
     console.log("About to call get in checkLimit func");
-    this.usersBucket = await this.store.get(ipAddress);
+    this.usersBucket = await this.store.get(key);
 
     // if le bucket does not exist
     if (!this.usersBucket) {
@@ -86,7 +86,7 @@ class BucketLimiter {
       lastRefill: now,
       formattedLastRefill: new Date().toISOString(),
     };
-    await this.store.set(this.ipAddress, this.bucketStore);
+    await this.store.set(this.key, this.bucketStore);
     this.usersBucket = {
       ...this.usersBucket,
       tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,
@@ -100,7 +100,7 @@ class BucketLimiter {
       lastRefill: now,
       formattedLastRefill: new Date().toISOString(),
     };
-    await this.store.set(this.ipAddress, this.bucketStore);
+    await this.store.set(this.key, this.bucketStore);
     return true;
   }
 
@@ -110,7 +110,7 @@ class BucketLimiter {
       lastRefill: this.bucketStore.lastRefill,
       formattedLastRefill: new Date().toISOString(),
     };
-    await this.store.set(this.ipAddress, this.bucketStore);
+    await this.store.set(this.key, this.bucketStore);
     return true;
   }
 }
