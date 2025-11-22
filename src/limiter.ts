@@ -1,5 +1,5 @@
 import BucketLimiter from "./limiters.ts/bucket";
-import { RateLimiterOptions } from "./types";
+import { RateLimiterOptions } from "../types/types";
 
 class RateLimiterFactory {
   static create(algorithm: string, options: RateLimiterOptions, storeType: any) {

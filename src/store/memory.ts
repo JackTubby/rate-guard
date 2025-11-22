@@ -1,4 +1,4 @@
-import { BucketState } from "../types";
+import { BucketState } from "../../types/types";
 interface Store {
   get(key: string): Promise<BucketState | null>;
   set(key: string, state: BucketState): Promise<void>;
@@ -8,7 +8,6 @@ class MemoryStore implements Store {
 	private buckets = new Map<string, BucketState>();
 
 	async get(key: string): Promise<BucketState | null> {
-		console.log("Bucket: ", this.buckets.get(key)); 
 		return this.buckets.get(key) || null;
 	}
 
