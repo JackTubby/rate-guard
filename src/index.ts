@@ -40,6 +40,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
       } else {
         return res.status(429).json({ message: "Too many requests" });
       }
+
     } catch (err) {
       if (err instanceof RateGuardError) {
         return res.status(500).json({
