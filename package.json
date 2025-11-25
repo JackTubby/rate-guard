@@ -1,6 +1,7 @@
 {
-  "name": "rate-limiter",
-  "version": "0.0.1-alpha.7",
+  "name": "rate-guard",
+  "version": "0.1.0-beta.1",
+  "description": "Lightweight, configurable Express rate limiting middleware with multiple algorithm support",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -20,10 +21,22 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["rate-limiting", "express", "middleware", "rate-limiter", "ddos-protection", "api-throttling"],
+  "author": "Jack Tubby",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jacktubby/rate-guard"
+  },
+  "homepage": "https://github.com/jacktubby/rate-guard#readme",
+  "bugs": {
+    "url": "https://github.com/jacktubby/rate-guard/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
@@ -35,10 +48,5 @@
     "ts-jest": "^29.4.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ]
+  }
 }
