@@ -1,4 +1,4 @@
-# Rate Limiter
+# Rate Limiter (BETA)
 
 A flexible, TypeScript-first rate limiting middleware for Express.js applications. Supports pluggable storage backends (memory, Redis), multiple rate limiting algorithms, and production-ready features like automatic cleanup and distributed scaling. Built with performance and developer experience in mind.
 **badges - build status - coverage to go here**
@@ -6,9 +6,8 @@ A flexible, TypeScript-first rate limiting middleware for Express.js application
 ## Table of Contents
 
 ## Quick Start
-
 ##### Installation
-```npm install rate-limiter```
+```npm install rate-guard```
 
 ##### Basic Usage
 ```
