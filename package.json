@@ -21,12 +21,19 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
-  "keywords": ["rate-limiting", "express", "middleware", "rate-limiter", "ddos-protection", "api-throttling"],
+  "keywords": [
+    "rate-limiting",
+    "express",
+    "middleware",
+    "rate-limiter",
+    "ddos-protection",
+    "api-throttling"
+  ],
   "author": "Jack Tubby",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jacktubby/rate-guard"
+    "url": "git+https://github.com/jacktubby/rate-guard.git"
   },
   "homepage": "https://github.com/jacktubby/rate-guard#readme",
   "bugs": {
