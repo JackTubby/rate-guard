@@ -63,20 +63,13 @@ Your API is now protected with rate limiting. Test it by making requests to your
 - **Cleanup** (Lifecycle) - Automatic memory management and optimization
 ```
 
-## API Reference
-
-Configuration options
-Method signatures
-Return values/types
-
-## Advanced Usage
-
-Multiple stores scenario
-Custom key generation
-Different limits per endpoint
-Redis vs Memory considerations
-
 ## Algorithms
+| Algorithm | Memory | Burst Handling | Accuracy | Complexity |
+|-----------|--------|----------------|----------|------------|
+| **Token Bucket** | ✅ Low | ✅ Excellent | ✅ High | ✅ Simple |
+| Fixed Window | ✅ Low | ❌ Poor | ⚠️ Edge cases | ✅ Simple |
+| Sliding Log | ❌ High | ✅ Perfect | ✅ Perfect | ❌ Complex |
+| Sliding Counter | ✅ Low | ⚠️ Good | ⚠️ Approximated | ⚠️ Moderate |
 
 #### Token Bucket Algorithm
 Models rate limiting as a bucket holding permission tokens. Each request consumes one token, and the bucket refills at a steady rate.
@@ -90,13 +83,6 @@ Allow request if tokens ≥ 1, consume token
 Deny if insufficient tokens
 
 ##### Why Token Bucket?
-| Algorithm | Memory | Burst Handling | Accuracy | Complexity |
-|-----------|--------|----------------|----------|------------|
-| **Token Bucket** | ✅ Low | ✅ Excellent | ✅ High | ✅ Simple |
-| Fixed Window | ✅ Low | ❌ Poor | ⚠️ Edge cases | ✅ Simple |
-| Sliding Log | ❌ High | ✅ Perfect | ✅ Perfect | ❌ Complex |
-| Sliding Counter | ✅ Low | ⚠️ Good | ⚠️ Approximated | ⚠️ Moderate |
-
 **Key Benefits:**
 - **Burst-friendly**: Users can "save up" tokens for legitimate spikes
 - **Memory efficient**
@@ -106,30 +92,12 @@ Deny if insufficient tokens
 ##### Performance
 - **Memory store**: Extremely fast (in-process)
 - **Redis store**: Network-bound but production-ready
-- **Operations:** 2 Redis calls per request (GET + SET)
-- **Cleanup:** <1% CPU overhead with hourly intervals
+- **Operations:**: Maximum 2 Redis calls per request (GET + SET)
+- **Cleanup:**
 
 ## Storage Backends
 Memory store (dev/testing)
 Redis store (production)
-Custom store implementation guide
-
-## Performance & Scaling
-
-Benchmarks
-Multi-instance considerations
-Cleanup strategy
-
-## Examples
-
-Common patterns
-Production scenarios
-Integration examples
-
-## Contributing
-
-Development setup
-Testing guidelines
 
 ## License
 [MIT Licenese](./LICENSE)
