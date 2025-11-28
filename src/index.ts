@@ -38,7 +38,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
       if (canProceed.success) {
         next();
       } else {
-        return res.status(429).json({ message: "Too many requests" });
+        return res.status(429).json({ message: options?.message ?? "Too many requests" });
       }
 
     } catch (err) {
