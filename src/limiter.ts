@@ -1,5 +1,6 @@
 import BucketLimiter from "./limiters.ts/bucket";
 import { RateLimiterOptions } from "../types/types";
+import { RateGuardError } from "./errors/errors";
 
 class RateLimiterFactory {
   static create(algorithm: string, options: RateLimiterOptions, storeType: any) {
@@ -7,7 +8,7 @@ class RateLimiterFactory {
       case "tokenBucket":
         return new BucketLimiter(options, storeType);
       default:
-        throw new Error(`Unknown algorithm: ${algorithm}`);
+        throw new RateGuardError('RGEC-0007', `${algorithm}`);
     }
   }
 }
