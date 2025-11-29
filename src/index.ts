@@ -34,7 +34,6 @@ export function createRateLimiter(options: RateLimiterOptions) {
       }
 
       const canProceed = await limiter.checkLimit(key);
-
       if (canProceed.success) {
         next();
       } else {
@@ -53,7 +52,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
   };
 }
 
-async function startPeriodicCleanup(store: any, interval: number = 3600000) {
-  const cleanup = new CleanUp(store, interval);
-  cleanup.scheduleCleanup();
-}
+// async function startPeriodicCleanup(store: any, interval: number = 3600000) {
+//   const cleanup = new CleanUp(store, interval);
+//   cleanup.scheduleCleanup();
+// }
