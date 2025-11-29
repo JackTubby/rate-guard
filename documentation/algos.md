@@ -2,7 +2,6 @@
 
 Bucket holds tokens, refills at steady rate
 Allows bursts up to bucket capacity
-Used by: AWS, GitHub, Stripe
 
 2. Leaky Bucket - Not Implemented
 
