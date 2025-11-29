@@ -3,7 +3,7 @@ import { RateLimiterOptions } from "../types/types";
 import CleanUp from "./cleanup";
 import RateLimiterFactory from "./limiter";
 import { RateGuardError } from "./errors/errors";
-import { criticalOptions } from "../helpers/entry-helpers";
+import { criticalOptions } from "./helpers/entry-helpers";
 
 export function createRateLimiter(options: RateLimiterOptions) {
   const validateOptions = criticalOptions(options);
@@ -34,11 +34,10 @@ export function createRateLimiter(options: RateLimiterOptions) {
       }
 
       const canProceed = await limiter.checkLimit(key);
-
       if (canProceed.success) {
         next();
       } else {
-        return res.status(429).json({ message: "Too many requests" });
+        return res.status(429).json({ message: options?.message ?? "Too many requests" });
       }
 
     } catch (err) {
@@ -53,7 +52,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
   };
 }
 
-async function startPeriodicCleanup(store: any, interval: number = 3600000) {
-  const cleanup = new CleanUp(store, interval);
-  cleanup.scheduleCleanup();
-}
+// async function startPeriodicCleanup(store: any, interval: number = 3600000) {
+//   const cleanup = new CleanUp(store, interval);
+//   cleanup.scheduleCleanup();
+// }

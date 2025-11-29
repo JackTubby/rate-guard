@@ -29,6 +29,11 @@ const ERROR_MAP = {
     position: "Internal" as const,
     message: "Missing required key: {details}",
   },
+  "RGEC-0007": {
+    name: "Invalid algorithm" as const,
+    position: "Internal" as const,
+    message: "Invalid algorithm type: {details}.",
+  },
 } as const;
 
 type ErrorCodes = keyof typeof ERROR_MAP;
