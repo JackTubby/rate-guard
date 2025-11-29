@@ -3,7 +3,7 @@ import { RateLimiterOptions } from "../types/types";
 import CleanUp from "./cleanup";
 import RateLimiterFactory from "./limiter";
 import { RateGuardError } from "./errors/errors";
-import { criticalOptions } from "../helpers/entry-helpers";
+import { criticalOptions } from "./helpers/entry-helpers";
 
 export function createRateLimiter(options: RateLimiterOptions) {
   const validateOptions = criticalOptions(options);

@@ -1,4 +1,4 @@
-import BucketLimiter from "./limiters.ts/bucket";
+import BucketLimiter from "./limiters/bucket";
 import { RateLimiterOptions } from "../types/types";
 import { RateGuardError } from "./errors/errors";
 

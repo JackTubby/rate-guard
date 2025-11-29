@@ -6,9 +6,15 @@ rate-limiter/
 │   ├── store/
 │   │   ├── memory.ts   # In-memory store for dev/demo
 │   │   └── redis.ts    # Redis store for production
-│   ├── limiter.ts      # Core logic (token bucket/sliding window)
-│   └── types.ts        # Shared TypeScript types/interfaces
+|   ├── helpers/        # Application helper functions 
+|   ├── limiters/
+|   |   └── bucket.ts   # Token Bucket implementation
+│   ├── errors/
+│   |   └── errors.ts   # Custom error handling
+│   └── limiter.ts      # Factory function to determine requests path
 ├── tests/
+├── types/
+|   └── types.ts        # Shared TypeScript types/interfaces
 ├── package.json
 ├── tsconfig.json
 ├── README.md
