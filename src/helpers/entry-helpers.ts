@@ -1,4 +1,4 @@
-import { RateLimiterOptions } from "../types/types";
+import { RateLimiterOptions } from "../../types/types";
 
 export function criticalOptions(options: RateLimiterOptions) {
   const criticalOptions = ["type", "storeType"]
