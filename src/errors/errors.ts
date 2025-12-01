@@ -34,6 +34,11 @@ const ERROR_MAP = {
     position: "Internal" as const,
     message: "Invalid algorithm type: {details}.",
   },
+  "RGEC-TEST": {
+    name: "Test error" as const,
+    position: "Internal" as const,
+    message: "Test Error",
+  },
 } as const;
 
 type ErrorCodes = keyof typeof ERROR_MAP;

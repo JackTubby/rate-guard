@@ -1,6 +1,7 @@
-import { RateLimiterOptions } from "../types/types";
+import { RateLimiterOptions } from "../../types/types";
 
 export function criticalOptions(options: RateLimiterOptions) {
+  if (!options) return ["options missing"]
   const criticalOptions = ["type", "storeType"]
   const passedOptions = Object.keys(options)
   let missedOptions: string[] = []
