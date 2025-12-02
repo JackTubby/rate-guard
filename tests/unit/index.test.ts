@@ -34,7 +34,6 @@ describe("createRateLimiter Initialise", () => {
     expect(RateLimiterFactory.create).toHaveBeenCalledWith(
       options.type,
       options,
-      options.storeType
     );
   });
 });
