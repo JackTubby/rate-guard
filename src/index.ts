@@ -22,7 +22,10 @@ export function createRateLimiter(options: RateLimiterOptions) {
   ) {
     try {
       let key = null;
-      if (options.type !== "fixed-window") {
+      if (options.type === "fixedWindow") {
+        console.log("Type is of fixedWindow");
+        key = "000";
+      } else {
         key =
           req.headers["x-rate-guard-key"] ||
           req.ip ||
@@ -34,8 +37,6 @@ export function createRateLimiter(options: RateLimiterOptions) {
             "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
           );
         }
-      } else {
-        key = "000";
       }
 
       const canProceed = await limiter.checkLimit(key);
