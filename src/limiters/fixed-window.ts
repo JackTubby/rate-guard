@@ -26,6 +26,7 @@ class FixedWindowLimiter {
   }
 
   public async checkLimit(key: string) {
+    this.key = key;
     this.usersBucket = await this.store.get(key);
 
     if (!this.usersBucket) {
@@ -56,14 +57,17 @@ class FixedWindowLimiter {
     const timePassed = now - this.lastRefill;
     if (timePassed >= this.timeFrame) {
       this.usersBucket.tokens = this.tokenLimit;
+      this.usersBucket.lastRefill = now;
+      this.usersBucket.formattedLastRefill = new Date().toISOString(),
+      await this.store.set(this.key, this.usersBucket);
     }
   }
 
   private async handleBucketExisting() {
     this.bucketStore = {
       tokens: this.usersBucket.tokens - 1,
-      lastRefill: this.bucketStore.lastRefill,
-      formattedLastRefill: new Date().toISOString(),
+      lastRefill: this.usersBucket.lastRefill,
+      formattedLastRefill: this.usersBucket.formattedLastRefill,
     };
     await this.store.set(this.key, this.bucketStore);
     return true;
