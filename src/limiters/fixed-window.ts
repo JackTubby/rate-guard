@@ -1,6 +1,6 @@
 import MemoryStore from "../store/memory";
 import CustomRedisStore from "../store/redis";
-import { BucketState } from "../../types/types";
+import { BucketState, RateLimiterOptions, StoreTypes } from "../../types/types";
 
 class FixedWindowLimiter {
   key: string | null;
@@ -11,9 +11,9 @@ class FixedWindowLimiter {
   bucketStore: BucketState;
   usersBucket: any;
 
-  constructor(options: any, storeType: any) {
+  constructor(options: RateLimiterOptions) {
     this.timeFrame = options.timeFrame || 900000; // milliseconds (15 mins)
-    storeType === "memory"
+    options.storeType === "memory"
       ? (this.store = new MemoryStore())
       : (this.store = new CustomRedisStore(options.store));
     this.tokenLimit = options.tokenLimit || 50;

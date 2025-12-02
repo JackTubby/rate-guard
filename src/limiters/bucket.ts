@@ -11,11 +11,11 @@ class BucketLimiter {
   bucketStore: BucketState;
   usersBucket: any;
 
-  constructor(options: any, storeType: any) {
+  constructor(options: any) {
     this.timeFrame = options.timeFrame || 900000; // milliseconds (15 mins)
-    if (storeType === "memory") {
+    if (options.storeType === "memory") {
       this.store = new MemoryStore();
-    } else if (storeType === "redis") {
+    } else if (options.storeType === "redis") {
       this.store = new CustomRedisStore(options.store);
     }
     this.tokenLimit = options.tokenLimit || 50;
