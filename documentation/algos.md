@@ -9,7 +9,7 @@ Requests go into bucket, leak out at fixed rate
 Smooths traffic, no bursts allowed
 Used by: Network traffic shaping
 
-3. Fixed Window - Not Implemented
+3. Fixed Window - Implemented
 
 Count requests in fixed time windows (e.g., per minute)
 Simple but has "thundering herd" at window boundaries
