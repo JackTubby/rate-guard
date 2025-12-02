@@ -5,7 +5,7 @@ import { BucketState } from "../../types/types";
 class FixedWindowLimiter {
   key: string | null;
   timeFrame: number;
-  lastRefill!: number;
+  windowMs!: number;
   store: any;
   tokenLimit: number;
   bucketStore: BucketState;
@@ -19,8 +19,8 @@ class FixedWindowLimiter {
     this.tokenLimit = options.tokenLimit || 50;
     this.bucketStore = {
       tokens: 0,
-      lastRefill: 0,
-      formattedLastRefill: "",
+      windowMs: 0,
+      formattedWindowMs: "",
     };
     this.key = "";
   }
@@ -52,13 +52,13 @@ class FixedWindowLimiter {
   }
 
   private async handleBucketRefill() {
-    this.lastRefill = this.usersBucket.lastRefill;
+    this.windowMs = this.usersBucket.windowMs;
     const now = new Date().getTime();
-    const timePassed = now - this.lastRefill;
+    const timePassed = now - this.windowMs;
     if (timePassed >= this.timeFrame) {
       this.usersBucket.tokens = this.tokenLimit;
-      this.usersBucket.lastRefill = now;
-      this.usersBucket.formattedLastRefill = new Date().toISOString(),
+      this.usersBucket.windowMs = now;
+      this.usersBucket.formattedWindowMs = new Date().toISOString(),
       await this.store.set(this.key, this.usersBucket);
     }
   }
@@ -66,8 +66,8 @@ class FixedWindowLimiter {
   private async handleBucketExisting() {
     this.bucketStore = {
       tokens: this.usersBucket.tokens - 1,
-      lastRefill: this.usersBucket.lastRefill,
-      formattedLastRefill: this.usersBucket.formattedLastRefill,
+      windowMs: this.usersBucket.windowMs,
+      formattedWindowMs: this.usersBucket.formattedWindowMs,
     };
     await this.store.set(this.key, this.bucketStore);
     return true;
@@ -77,8 +77,8 @@ class FixedWindowLimiter {
     const now = new Date().getTime();
     this.bucketStore = {
       tokens: this.tokenLimit - 1,
-      lastRefill: now,
-      formattedLastRefill: new Date().toISOString(),
+      windowMs: now,
+      formattedWindowMs: new Date().toISOString(),
     };
     try {
       await this.store.set(this.key, this.bucketStore);

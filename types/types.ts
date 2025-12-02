@@ -14,6 +14,6 @@ type StoreTypes = "redis" | "memory";
 
 export interface BucketState {
   tokens: number;
-  lastRefill: number;
-  formattedLastRefill: string;
+  windowMs: number;
+  formattedWindowMs: string;
 }

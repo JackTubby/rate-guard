@@ -5,7 +5,7 @@ import { BucketState } from "../../types/types";
 class BucketLimiter {
   key: string | null;
   timeFrame: number;
-  lastRefill!: number;
+  windowMs!: number;
   store: any;
   tokenLimit: number;
   bucketStore: BucketState;
@@ -21,8 +21,8 @@ class BucketLimiter {
     this.tokenLimit = options.tokenLimit || 50;
     this.bucketStore = {
       tokens: 0,
-      lastRefill: 0,
-      formattedLastRefill: "",
+      windowMs: 0,
+      formattedWindowMs: "",
     };
     this.key = "";
   }
@@ -56,9 +56,9 @@ class BucketLimiter {
   }
 
   private async handleBucketRefill() {
-    this.lastRefill = this.usersBucket.lastRefill;
+    this.windowMs = this.usersBucket.windowMs;
     const now = new Date().getTime();
-    const timePassed = now - this.lastRefill;
+    const timePassed = now - this.windowMs;
     const refillRate = this.tokenLimit / this.timeFrame;
     const tokensToAdd = Math.floor(timePassed * refillRate);
     const currentTokens = this.usersBucket.tokens;
@@ -71,8 +71,8 @@ class BucketLimiter {
 
     this.bucketStore = {
       tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,
-      lastRefill: now,
-      formattedLastRefill: new Date().toISOString(),
+      windowMs: now,
+      formattedWindowMs: new Date().toISOString(),
     };
     await this.store.set(this.key, this.bucketStore);
     this.usersBucket = {
@@ -85,8 +85,8 @@ class BucketLimiter {
     const now = new Date().getTime();
     this.bucketStore = {
       tokens: this.tokenLimit - 1,
-      lastRefill: now,
-      formattedLastRefill: new Date().toISOString(),
+      windowMs: now,
+      formattedWindowMs: new Date().toISOString(),
     };
     await this.store.set(this.key, this.bucketStore);
     return true;
@@ -95,8 +95,8 @@ class BucketLimiter {
   private async handleBucketExisting() {
     this.bucketStore = {
       tokens: this.usersBucket.tokens - 1,
-      lastRefill: this.bucketStore.lastRefill,
-      formattedLastRefill: new Date().toISOString(),
+      windowMs: this.bucketStore.windowMs,
+      formattedWindowMs: new Date().toISOString(),
     };
     await this.store.set(this.key, this.bucketStore);
     return true;
