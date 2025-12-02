@@ -21,25 +21,31 @@ export function createRateLimiter(options: RateLimiterOptions) {
     next: NextFunction
   ) {
     try {
-      const key =
-        req.headers["x-rate-guard-key"] ||
-        req.ip ||
-        req.connection.remoteAddress ||
-        null;
-      if (!key || typeof key != "string") {
-        throw new RateGuardError(
-          "RGEC-0006",
-          "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
-        );
+      let key = null;
+      if (options.type !== "fixed-window") {
+        key =
+          req.headers["x-rate-guard-key"] ||
+          req.ip ||
+          req.connection.remoteAddress ||
+          null;
+        if (!key || typeof key != "string") {
+          throw new RateGuardError(
+            "RGEC-0006",
+            "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
+          );
+        }
+      } else {
+        key = "000";
       }
 
       const canProceed = await limiter.checkLimit(key);
       if (canProceed.success) {
         next();
       } else {
-        return res.status(429).json({ message: options?.message ?? "Too many requests" });
+        return res
+          .status(429)
+          .json({ message: options?.message ?? "Too many requests" });
       }
-
     } catch (err) {
       if (err instanceof RateGuardError) {
         return res.status(500).json({
