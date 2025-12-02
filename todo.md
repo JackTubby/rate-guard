@@ -1,2 +1,3 @@
 - Actually implement cleanup properly
 - Currently in the index.ts we get the ip address from the request this should continue to be the default behaviour but we should allow that if the user passes a arg like "value" then that should be the key instead
+- Rename lastRefill to better match all algos e.g. window (ws)
