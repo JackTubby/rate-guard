@@ -11,8 +11,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
     throw new RateGuardError("RGEC-0001", `${validateOptions.join(", ")}`);
   }
 
-  const algorithm = options.type;
-  const limiter = RateLimiterFactory.create(algorithm, options);
+  const limiter = RateLimiterFactory.create(options);
 
   return async function rateLimiter(
     req: Request,

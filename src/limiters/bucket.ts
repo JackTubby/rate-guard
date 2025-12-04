@@ -12,21 +12,17 @@ class BucketLimiter {
   usersBucket: any;
   ttl: number;
 
-  constructor(options: any) {
-    this.timeFrame = options.timeFrame || 900000; // milliseconds (15 mins)
-    if (options.storeType === "memory") {
-      this.store = new MemoryStore();
-    } else if (options.storeType === "redis") {
-      this.store = new CustomRedisStore(options.store);
-    }
-    this.tokenLimit = options.tokenLimit || 50;
+  constructor(options: any, storeInstance: any) {
+    this.timeFrame = options.timeFrame
+    this.store = storeInstance
+    this.tokenLimit = options.tokenLimit
     this.bucketStore = {
       tokens: 0,
       windowMs: 0,
       formattedWindowMs: "",
     };
     this.key = "";
-    this.ttl = options.ttl && 86400000;
+    this.ttl = options.ttl;
   }
 
   public async checkLimit(key: string) {

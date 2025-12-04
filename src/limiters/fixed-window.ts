@@ -10,19 +10,19 @@ class FixedWindowLimiter {
   tokenLimit: number;
   bucketStore: BucketState;
   usersBucket: any;
+  ttl: number;
 
-  constructor(options: RateLimiterOptions) {
-    this.timeFrame = options.timeFrame || 900000; // milliseconds (15 mins)
-    options.storeType === "memory"
-      ? (this.store = new MemoryStore())
-      : (this.store = new CustomRedisStore(options.store));
-    this.tokenLimit = options.tokenLimit || 50;
+  constructor(options: any, storeInstance: any) {
+    this.timeFrame = options.timeFrame
+    this.store = storeInstance
+    this.tokenLimit = options.tokenLimit
     this.bucketStore = {
       tokens: 0,
       windowMs: 0,
       formattedWindowMs: "",
     };
     this.key = "";
+    this.ttl = options.ttl;
   }
 
   public async checkLimit(key: string) {
@@ -81,7 +81,7 @@ class FixedWindowLimiter {
       formattedWindowMs: new Date().toISOString(),
     };
     try {
-      await this.store.set(this.key, this.bucketStore);
+      await this.store.set(this.key, this.bucketStore, this.ttl);
     } catch (err) {
       return false;
     }
