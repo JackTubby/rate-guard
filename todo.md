@@ -2,3 +2,4 @@
 - Currently in the index.ts we get the ip address from the request this should continue to be the default behaviour but we should allow that if the user passes a arg like "value" then that should be the key instead
 - Implement LRU for memory
 - getRemainingTokens method for observability (useful for rate limit headers like X-RateLimit-Remaining)
+- redis atomic lua script look into
