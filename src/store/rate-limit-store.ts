@@ -1,8 +1,8 @@
-import { BucketState } from "../../types/types";
+import { RateLimitState } from "../../types/types";
 
 interface Store {
-  get(key: string): Promise<BucketState | null>;
-  set(key: string, value: BucketState, ttl?: number): Promise<void>;
+  get(key: string): Promise<RateLimitState | null>;
+  set(key: string, value: RateLimitState, ttl?: number): Promise<void>;
 }
 
 export class RateLimitStore {
@@ -11,15 +11,15 @@ export class RateLimitStore {
     private ttl: number
   ) {}
 
-  async get(key: string): Promise<BucketState | null> {
+  async get(key: string): Promise<RateLimitState | null> {
     return this.store.get(key);
   }
 
-  async save(key: string, state: BucketState): Promise<void> {
+  async save(key: string, state: RateLimitState): Promise<void> {
     await this.store.set(key, state, this.ttl);
   }
 
-  createState(tokens: number): BucketState {
+  createState(tokens: number): RateLimitState {
     return {
       tokens,
       windowMs: Date.now(),

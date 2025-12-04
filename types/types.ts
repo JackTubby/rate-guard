@@ -23,15 +23,15 @@ export type RateLimiterOptions =
 
 export type StoreTypes = "redis" | "memory";
 
-export interface BucketState {
+export interface RateLimitState {
   tokens: number;
   windowMs: number;
   formattedWindowMs: string;
 }
 
 export interface Store {
-  get(key: string): Promise<BucketState | null>;
-  set(key: string, state: BucketState): Promise<void>;
+  get(key: string): Promise<RateLimitState | null>;
+  set(key: string, state: RateLimitState): Promise<void>;
   delete(key: string): Promise<void>;
 }
 

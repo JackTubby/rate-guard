@@ -1,13 +1,13 @@
-import { Store, BucketState } from "../../types/types";
+import { Store, RateLimitState } from "../../types/types";
 
 class MemoryStore implements Store {
-  private buckets = new Map<string, BucketState>();
+  private buckets = new Map<string, RateLimitState>();
 
-  async get(key: string): Promise<BucketState | null> {
+  async get(key: string): Promise<RateLimitState | null> {
     return this.buckets.get(key) ?? null;
   }
 
-  async set(key: string, state: BucketState): Promise<void> {
+  async set(key: string, state: RateLimitState): Promise<void> {
     this.buckets.set(key, state);
   }
 

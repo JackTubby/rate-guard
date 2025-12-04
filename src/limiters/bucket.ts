@@ -1,4 +1,4 @@
-import { BucketState } from "../../types/types";
+import { RateLimitState } from "../../types/types";
 import { RateLimitStore } from "../store/rate-limit-store";
 
 interface TokenBucketOptions {
@@ -39,7 +39,7 @@ class TokenBucketLimiter {
     return { success: true, message: "Token granted" };
   }
 
-  private refill(bucket: BucketState): BucketState {
+  private refill(bucket: RateLimitState): RateLimitState {
     const { tokenLimit, timeFrame } = this.options;
     const now = Date.now();
     const timePassed = now - bucket.windowMs;
