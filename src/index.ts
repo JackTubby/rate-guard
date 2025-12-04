@@ -1,9 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { RateLimiterOptions } from "../types/types";
-import CleanUp from "./cleanup";
 import RateLimiterFactory from "./limiter";
 import { RateGuardError } from "./errors/errors";
-import { criticalOptions } from "./helpers/entry-helpers";
+import { criticalOptions, resolveRateLimitKey } from "./helpers/entry-helpers";
 
 export function createRateLimiter(options: RateLimiterOptions) {
   const validateOptions = criticalOptions(options);
@@ -19,23 +18,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
     next: NextFunction
   ) {
     try {
-      let key = null;
-      if (options.type === "fixedWindow") {
-        console.log("Type is of fixedWindow");
-        key = "000";
-      } else {
-        key =
-          req.headers["x-rate-guard-key"] ||
-          req.ip ||
-          req.connection.remoteAddress ||
-          null;
-        if (!key || typeof key != "string") {
-          throw new RateGuardError(
-            "RGEC-0006",
-            "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
-          );
-        }
-      }
+      const key = resolveRateLimitKey(options, req);
 
       const canProceed = await limiter.checkLimit(key);
       if (canProceed.success) {
