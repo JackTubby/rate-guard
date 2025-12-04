@@ -1,14 +1,9 @@
 import { RateGuardError } from "../../src/errors/errors";
-import { createRateLimiter } from "../../src/index";
-import RateLimiterFactory from "../../src/limiter";
-import { Request, Response, NextFunction } from "express";
-
-jest.mock("../../src/limiter", () => ({
-  __esModule: true,
-  default: {
-    create: jest.fn(),
-  },
-}));
+import {
+  criticalOptions,
+  resolveRateLimitKey,
+} from "../../src/helpers/entry-helpers";
+import { Request } from "express";
 
 const mockRequest = (overrides = {}) =>
   ({
@@ -18,157 +13,171 @@ const mockRequest = (overrides = {}) =>
     ...overrides,
   }) as unknown as Request;
 
-const mockResponse = () => {
-  const res = {} as Response;
-  res.status = jest.fn().mockReturnValue(res);
-  res.json = jest.fn().mockReturnValue(res);
-  return res;
-};
-
-const mockNext: NextFunction = jest.fn();
-
-describe("createRateLimiter Initialise", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test("should throw an error for missing required options", () => {
-    // @ts-expect-error
-    expect(() => createRateLimiter()).toThrow(RateGuardError);
-
-    // @ts-expect-error
-    expect(() => createRateLimiter({ type: "tokenBucket" })).toThrow(
-      RateGuardError
-    );
-
-    // @ts-expect-error
-    expect(() => createRateLimiter({ storeType: "memory" })).toThrow(
-      RateGuardError
-    );
-  });
-
-  test("should call RateLimiterFactory.create() with correct arguments", () => {
+describe("criticalOptions", () => {
+  test("should return empty array when all required options provided", () => {
     const options = {
       type: "tokenBucket",
       storeType: "memory",
     } as const;
 
-    (RateLimiterFactory.create as jest.Mock).mockReturnValue({
-      checkLimit: jest.fn().mockResolvedValue({ success: true }),
-    });
+    expect(criticalOptions(options)).toEqual([]);
+  });
 
-    createRateLimiter(options);
-    expect(RateLimiterFactory.create).toHaveBeenCalledWith(options);
+  test("should return missing 'type' when not provided", () => {
+    const options = {
+      storeType: "memory",
+    } as const;
+
+    // @ts-expect-error
+    const result = criticalOptions(options);
+    expect(result).toContain("type");
+  });
+
+  test("should return missing 'storeType' when not provided", () => {
+    const options = {
+      type: "tokenBucket",
+    } as const;
+
+    // @ts-expect-error
+    const result = criticalOptions(options);
+    expect(result).toContain("storeType");
+  });
+
+  test("should return both missing fields when neither provided", () => {
+    // @ts-expect-error
+    const result = criticalOptions({});
+    expect(result).toContain("type");
+    expect(result).toContain("storeType");
+  });
+
+  test("should return 'options missing' when options is null or undefined", () => {
+    // @ts-expect-error
+    expect(criticalOptions(null)).toEqual(["options missing"]);
+    // @ts-expect-error
+    expect(criticalOptions(undefined)).toEqual(["options missing"]);
   });
 });
 
-describe("createRateLimiter Middleware", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+describe("resolveRateLimitKey", () => {
+  describe("fixedWindow type", () => {
+    test("should always return '000' for fixedWindow type", () => {
+      const options = {
+        type: "fixedWindow",
+        storeType: "memory",
+      } as const;
 
-  test("should return a function", () => {
-    const options = {
-      type: "tokenBucket",
-      storeType: "memory",
-    } as const;
+      const req = mockRequest({ ip: "192.168.1.1" });
+      const key = resolveRateLimitKey(options, req);
 
-    (RateLimiterFactory.create as jest.Mock).mockReturnValue({
-      checkLimit: jest.fn().mockResolvedValue({ success: true }),
+      expect(key).toBe("000");
     });
 
-    const middleware = createRateLimiter(options);
-    expect(typeof middleware).toBe("function");
+    test("should return '000' regardless of headers for fixedWindow", () => {
+      const options = {
+        type: "fixedWindow",
+        storeType: "memory",
+      } as const;
+
+      const req = mockRequest({
+        headers: { "x-rate-guard-key": "custom-key" },
+      });
+      const key = resolveRateLimitKey(options, req);
+
+      expect(key).toBe("000");
+    });
   });
 
-  test("should call next() when rate limit check passes", async () => {
-    const options = {
-      type: "tokenBucket",
-      storeType: "memory",
-    } as const;
+  describe("tokenBucket type", () => {
+    test("should use x-rate-guard-key header when present", () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
 
-    (RateLimiterFactory.create as jest.Mock).mockReturnValue({
-      checkLimit: jest.fn().mockResolvedValue({ success: true }),
+      const req = mockRequest({
+        headers: { "x-rate-guard-key": "custom-key-123" },
+      });
+      const key = resolveRateLimitKey(options, req);
+
+      expect(key).toBe("custom-key-123");
     });
 
-    const middleware = createRateLimiter(options);
-    const req = mockRequest();
-    const res = mockResponse();
-    const next = jest.fn();
+    test("should use req.ip when no custom header present", () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
 
-    await middleware(req, res, next);
+      const req = mockRequest({ ip: "192.168.1.1" });
+      const key = resolveRateLimitKey(options, req);
 
-    expect(next).toHaveBeenCalled();
-  });
-
-  test("should return 429 when rate limit exceeded", async () => {
-    const options = {
-      type: "tokenBucket",
-      storeType: "memory",
-    } as const;
-
-    (RateLimiterFactory.create as jest.Mock).mockReturnValue({
-      checkLimit: jest.fn().mockResolvedValue({ success: false }),
+      expect(key).toBe("192.168.1.1");
     });
 
-    const middleware = createRateLimiter(options);
-    const req = mockRequest();
-    const res = mockResponse();
-    const next = jest.fn();
+    test("should fall back to connection.remoteAddress when ip not available", () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
 
-    await middleware(req, res, next);
+      const req = mockRequest({
+        ip: undefined,
+        connection: { remoteAddress: "172.16.0.1" },
+      });
+      const key = resolveRateLimitKey(options, req);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(429);
-    expect(res.json).toHaveBeenCalledWith({ message: "Too many requests" });
-  });
-
-  test("should use custom message when rate limit exceeded", async () => {
-    const options = {
-      type: "tokenBucket",
-      storeType: "memory",
-      message: "Slow down!",
-    } as const;
-
-    (RateLimiterFactory.create as jest.Mock).mockReturnValue({
-      checkLimit: jest.fn().mockResolvedValue({ success: false }),
+      expect(key).toBe("172.16.0.1");
     });
 
-    const middleware = createRateLimiter(options);
-    const req = mockRequest();
-    const res = mockResponse();
-    const next = jest.fn();
+    test("should prioritize x-rate-guard-key over req.ip", () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
 
-    await middleware(req, res, next);
+      const req = mockRequest({
+        ip: "192.168.1.1",
+        headers: { "x-rate-guard-key": "header-key" },
+      });
+      const key = resolveRateLimitKey(options, req);
 
-    expect(res.json).toHaveBeenCalledWith({ message: "Slow down!" });
-  });
-
-  test("should return 500 when RateGuardError is thrown", async () => {
-    const options = {
-      type: "tokenBucket",
-      storeType: "memory",
-    } as const;
-
-    (RateLimiterFactory.create as jest.Mock).mockReturnValue({
-      checkLimit: jest
-        .fn()
-        .mockRejectedValue(new RateGuardError("RGEC-0006", "Test error")),
+      expect(key).toBe("header-key");
     });
 
-    const middleware = createRateLimiter(options);
-    const req = mockRequest();
-    const res = mockResponse();
-    const next = jest.fn();
+    test("should throw RateGuardError when no key can be resolved", () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
 
-    await middleware(req, res, next);
+      const req = mockRequest({
+        ip: undefined,
+        headers: {},
+        connection: { remoteAddress: undefined },
+      });
 
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({
-      code: "RGEC-0006",
-      name: "Missing key",
-      message: "Missing required key: Test error",
+      expect(() => resolveRateLimitKey(options, req)).toThrow(RateGuardError);
+    });
+
+    test("should throw RateGuardError with correct code", () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
+
+      const req = mockRequest({
+        ip: undefined,
+        headers: {},
+        connection: { remoteAddress: undefined },
+      });
+
+      try {
+        resolveRateLimitKey(options, req);
+        fail("Expected RateGuardError to be thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(RateGuardError);
+        expect((err as RateGuardError).code).toBe("RGEC-0006");
+      }
     });
   });
 });

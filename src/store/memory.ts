@@ -4,7 +4,8 @@ class MemoryStore implements Store {
   private buckets = new Map<string, RateLimitState>();
 
   async get(key: string): Promise<RateLimitState | null> {
-    return this.buckets.get(key) ?? null;
+    const bucket = this.buckets.get(key);
+    return bucket ?? null;
   }
 
   async set(key: string, state: RateLimitState): Promise<void> {
