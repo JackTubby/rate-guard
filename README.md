@@ -1,103 +1,256 @@
-# Rate Limiter (BETA)
+# Rate Guard (BETA)
 
-A flexible, TypeScript-first rate limiting middleware for Express.js applications. Supports pluggable storage backends (memory, Redis), multiple rate limiting algorithms, and production-ready features like automatic cleanup and distributed scaling. Built with performance and developer experience in mind.
+A TypeScript rate limiting middleware for Express.js. Supports memory and Redis storage, Token Bucket and Fixed Window algorithms.
+
 **badges - build status - coverage to go here**
 
-## Table of Contents
+## Installation
+
+```bash
+npm install rate-guard
+```
 
 ## Quick Start
-##### Installation
-```npm install rate-guard```
 
-##### Basic Usage
-```
-import express from 'express';
-import { createRateLimiter } from 'rate-limiter';
+```javascript
+import express from "express";
+import { createRateLimiter } from "rate-guard";
 
 const app = express();
 
-// Apply rate limiting: 100 requests per 15 minutes
 const limiter = createRateLimiter({
-  tokenLimit: 100,
-  timeFrame: 15 * 60 * 1000
+  storeType: "memory", // store type e.g memory or redis
+  type: "tokenBucket", // choice of algo
+  tokenLimit: 6, // 6 token limit within window
+  timeFrame: 60000, // 1 minute
 });
 
 app.use(limiter);
-app.get('/', (req, res) => res.send('Hello World!'));
+app.get("/", (req, res) => res.send("Hello World!"));
 
 app.listen(3000);
 ```
-Your API is now protected with rate limiting. Test it by making requests to your protected endpoint - after maxing out requests, you'll get a 429 Too Many Requests response.
 
-## Features
+After exhausting your token limit, requests return `429 Too Many Requests`.
 
-- Pluggable Storage - Memory store for development, Redis for production scaling
-- TypeScript-First - Full type safety with JavaScript compatibility
-- Multiple Algorithms - Choose your preferred protection 
-- Flexible Rate Keys - Rate limit by IP, user ID, API key, or custom identifiers
-- Automatic Cleanup - Smart memory management with configurable intervals
-- Multiple Limit Strategies - Global limits, per-endpoint limits, or mixed approaches
-- Production Ready - Distributed-safe with Redis, handles race conditions
-- Usage Statistics - Optional callback hooks for monitoring and dashboards
-- Custom Handlers - Define custom responses when limits are exceeded
-- Low Dependencies - Lightweight core with optional Redis integration
-- High Performance - Optimized for minimal latency and memory usage
+## Configuration
 
-### What Sets It Apart
+| Option       | Type                               | Required | Default               | Description                          |
+| ------------ | ---------------------------------- | -------- | --------------------- | ------------------------------------ |
+| `storeType`  | `'memory'` \| `'redis'`            | Yes      | -                     | Storage backend                      |
+| `type`       | `'tokenBucket'` \| `'fixedWindow'` | Yes      | -                     | Rate limiting algorithm              |
+| `store`      | `RedisClient`                      | If Redis | -                     | Redis client instance                |
+| `tokenLimit` | `number`                           | No       | `50`                  | Requests allowed per window          |
+| `timeFrame`  | `number`                           | No       | `900000`              | Window length in ms (default 15 min) |
+| `ttl`        | `number`                           | No       | `86400000`            | Data expiry in ms (default 24 hours) |
+| `message`    | `string`                           | No       | `'Too many requests'` | Response message when limited        |
 
-- Architecture-first design - Clean separation between algorithm, storage, and middleware layers
-- True flexibility - Same middleware works for both global and per-route limiting without code changes
-- Smart defaults - Works out of the box but extensively configurable for advanced use cases
-- Developer experience - Comprehensive TypeScript support with intuitive API design
+## Usage
 
-## Architecture Overview
+### Memory Store (Development)
 
-### Core Components
-```markdown
-**Request Flow:**
-1. **Middleware** (Express Layer) - Request interception and response handling
-2. **Limiter** (Algorithm) - Token bucket calculations and decisions  
-3. **Store** (Data Layer) - Persistent state management
+```javascript
+const limiter = createRateLimiter({
+  storeType: "memory",
+  type: "tokenBucket",
+  tokenLimit: 100,
+  timeFrame: 60000,
+});
+```
 
-**Background Process:**
-- **Cleanup** (Lifecycle) - Automatic memory management and optimization
+### Redis Store (Production)
+
+```javascript
+import { createClient } from "redis";
+
+const redis = createClient({ url: "redis://localhost:6379" });
+await redis.connect();
+
+const limiter = createRateLimiter({
+  storeType: "redis",
+  store: redis,
+  type: "tokenBucket",
+  tokenLimit: 100,
+  timeFrame: 60000,
+});
+```
+
+### Per-Route Limiting
+
+```javascript
+const strictLimiter = createRateLimiter({
+  storeType: "memory",
+  type: "tokenBucket",
+  tokenLimit: 10,
+  timeFrame: 60000,
+});
+
+const relaxedLimiter = createRateLimiter({
+  storeType: "memory",
+  type: "tokenBucket",
+  tokenLimit: 100,
+  timeFrame: 60000,
+});
+
+app.post("/login", strictLimiter, loginHandler);
+app.get("/api", relaxedLimiter, apiHandler);
+```
+
+### Per-Route Mix Limiting
+
+```javascript
+const perUserLimiter = createRateLimiter({
+  storeType: "memory",
+  type: "tokenBucket",
+  tokenLimit: 100,
+  timeFrame: 60000,
+});
+
+const globalLimiter = createRateLimiter({
+  storeType: "memory",
+  type: "fixedWindow",
+  tokenLimit: 10000,
+  timeFrame: 60000,
+});
+
+app.use(globalLimiter); // API-wide cap
+app.get("/api", perUserLimiter, apiHandler); // Per-user limit
+```
+
+### Custom Error Message
+
+```javascript
+const limiter = createRateLimiter({
+  storeType: "memory",
+  type: "tokenBucket",
+  tokenLimit: 100,
+  timeFrame: 60000,
+  message: "Slow down! Too many requests.",
+});
 ```
 
 ## Algorithms
-| Algorithm | Memory | Burst Handling | Accuracy | Complexity |
-|-----------|--------|----------------|----------|------------|
-| **Token Bucket** | ✅ Low | ✅ Excellent | ✅ High | ✅ Simple |
-| Fixed Window | ✅ Low | ❌ Poor | ⚠️ Edge cases | ✅ Simple |
-| Sliding Log | ❌ High | ✅ Perfect | ✅ Perfect | ❌ Complex |
-| Sliding Counter | ✅ Low | ⚠️ Good | ⚠️ Approximated | ⚠️ Moderate |
 
-#### Token Bucket Algorithm
-Models rate limiting as a bucket holding permission tokens. Each request consumes one token, and the bucket refills at a steady rate.
+### Token Bucket
 
-Request arrives → Check tokens → Allow/Deny → Refill over time
+Per-user rate limiting with gradual token refill. Allows bursts while maintaining average rate.
 
-##### Core Logic:
-Calculate tokens to add based on time elapsed
-Cap at bucket capacity
-Allow request if tokens ≥ 1, consume token
-Deny if insufficient tokens
+- Tokens refill gradually over time
+- Users can "save up" tokens for legitimate bursts
+- Key: client IP address
 
-##### Why Token Bucket?
-**Key Benefits:**
-- **Burst-friendly**: Users can "save up" tokens for legitimate spikes
-- **Memory efficient**
-- **O(1) operations**: Constant time performance
-- **Industry standard**
+```javascript
+const limiter = createRateLimiter({
+  storeType: "memory",
+  type: "tokenBucket",
+  tokenLimit: 60, // 60 tokens max
+  timeFrame: 60000, // Refills completely in 60 seconds (1 token/sec)
+});
+```
 
-##### Performance
-- **Memory store**: Extremely fast (in-process)
-- **Redis store**: Network-bound but production-ready
-- **Operations:**: Maximum 2 Redis calls per request (GET + SET)
-- **Cleanup:**
+### Fixed Window
+
+Global rate limiting with full reset at window expiry. All users share the same token pool.
+
+- Tokens reset completely when window expires
+- Shared across all users (global limit)
+- Key: `000` (single bucket)
+
+```javascript
+const limiter = createRateLimiter({
+  storeType: "memory",
+  type: "fixedWindow",
+  tokenLimit: 1000, // 1000 requests per window
+  timeFrame: 60000, // Window resets every 60 seconds
+});
+```
+
+### Comparison
+
+| Feature        | Token Bucket       | Fixed Window         |
+| -------------- | ------------------ | -------------------- |
+| Scope          | Per-user           | Global               |
+| Refill         | Gradual            | Full reset           |
+| Burst handling | Smooth             | Edge spikes possible |
+| Use case       | User rate limiting | API-wide caps        |
 
 ## Storage Backends
-Memory store (dev/testing)
-Redis store (production)
+
+### Memory
+
+- Zero dependencies
+- Fast (in-process)
+- Single instance only
+- Good for development and small deployments
+
+### Redis
+
+- Distributed rate limiting
+- Works across multiple instances
+- Production ready
+- Requires Redis connection
+
+## Concurrency Note
+
+The default implementation uses non-atomic read-modify-write operations. For strict rate limiting under high concurrency with Redis, consider wrapping with your own atomic store implementation using Lua scripts.
+
+## API
+
+### `createRateLimiter(options)`
+
+Returns an Express middleware function.
+
+```typescript
+type RateLimiterOptions =
+  | {
+      storeType: "memory";
+      type: "tokenBucket" | "fixedWindow";
+      tokenLimit?: number;
+      timeFrame?: number;
+      ttl?: number;
+      message?: string;
+    }
+  | {
+      storeType: "redis";
+      store: RedisClient;
+      type: "tokenBucket" | "fixedWindow";
+      tokenLimit?: number;
+      timeFrame?: number;
+      ttl?: number;
+      message?: string;
+    };
+```
+
+### Response
+
+When rate limited, returns:
+
+```
+HTTP 429 Too Many Requests
+Content-Type: application/json
+
+{ "message": "Too many requests" }
+```
+
+## Roadmap
+
+- [ ] Sliding Window Log algorithm
+- [ ] Sliding Window Counter algorithm
+- [ ] Leaky Bucket algorithm
+- [ ] Custom key resolver (`value` option)
+- [ ] Rate limit headers (`X-RateLimit-Remaining`, `X-RateLimit-Reset`)
+- [ ] Automatic cleanup for memory store
+- [ ] Custom response handlers
+- [ ] Usage statistics / monitoring hooks (until implemented, manage Redis data directly)
+
+## Author
+
+**Jack Tubby** - [GitHub](https://github.com/jacktubby)
+
+## Contributing
+
+Contributions welcome. Please open an issue first to discuss proposed changes.
 
 ## License
-[MIT Licenese](./LICENSE)
+
+[MIT License](./LICENSE)
