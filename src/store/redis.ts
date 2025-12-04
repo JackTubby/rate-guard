@@ -19,8 +19,14 @@ class CustomRedisStore implements Store {
     }
   }
 
-  async set(key: string, state: BucketState): Promise<void> {
-    await this.redis.set(key, JSON.stringify(state));
+  async set(key: string, state: BucketState, ttl?: number): Promise<void> {
+    if (ttl) {
+      await this.redis.set(key, JSON.stringify(state), {
+        PX: ttl,
+      });
+    } else {
+      await this.redis.set(key, JSON.stringify(state));
+    }
   }
 
   async delete(key: string): Promise<void> {

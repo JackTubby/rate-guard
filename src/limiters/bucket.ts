@@ -10,6 +10,7 @@ class BucketLimiter {
   tokenLimit: number;
   bucketStore: BucketState;
   usersBucket: any;
+  ttl: number;
 
   constructor(options: any) {
     this.timeFrame = options.timeFrame || 900000; // milliseconds (15 mins)
@@ -25,6 +26,7 @@ class BucketLimiter {
       formattedWindowMs: "",
     };
     this.key = "";
+    this.ttl = options.ttl && 86400000;
   }
 
   public async checkLimit(key: string) {
@@ -88,7 +90,7 @@ class BucketLimiter {
       windowMs: now,
       formattedWindowMs: new Date().toISOString(),
     };
-    await this.store.set(this.key, this.bucketStore);
+    await this.store.set(this.key, this.bucketStore, this.ttl);
     return true;
   }
 
