@@ -1,19 +1,15 @@
 import {
   RateLimitState,
-  TokenBucketOptions,
+  FixedWindowOptions,
   RateLimitResult,
 } from "../../types/types";
 import { RateLimitStore } from "../store/rate-limit-store";
 
-class TokenBucketLimiter {
-  private readonly msPerToken: number;
-
+class FixedWindowLimiter {
   constructor(
     private bucketStore: RateLimitStore,
-    private options: TokenBucketOptions
-  ) {
-    this.msPerToken = options.timeFrame / options.tokenLimit;
-  }
+    private options: FixedWindowOptions
+  ) {}
 
   async checkLimit(key: string): Promise<RateLimitResult> {
     const bucket = await this.bucketStore.get(key);
@@ -28,8 +24,8 @@ class TokenBucketLimiter {
 
     const refilled = this.refill(bucket);
 
-    if (refilled.tokens < 1) {
-      return { success: false, message: "Rate limit exceeded" };
+    if (refilled.tokens === 0) {
+      return { success: false, message: "No tokens left" };
     }
 
     const decremented: RateLimitState = {
@@ -41,27 +37,23 @@ class TokenBucketLimiter {
   }
 
   private refill(bucket: RateLimitState): RateLimitState {
-    const { tokenLimit } = this.options;
+    const { tokenLimit, timeFrame } = this.options;
     const now = Date.now();
     const timePassed = now - bucket.windowMs;
 
-    const tokensToAdd = Math.floor(timePassed / this.msPerToken);
+    if (timePassed >= timeFrame) {
+      const windowsElapsed = Math.floor(timePassed / timeFrame);
+      const newWindowMs = bucket.windowMs + windowsElapsed * timeFrame;
 
-    if (tokensToAdd === 0) {
-      return bucket;
+      return {
+        tokens: tokenLimit,
+        windowMs: newWindowMs,
+        formattedWindowMs: new Date(newWindowMs).toISOString(),
+      };
     }
 
-    const newTokens = Math.min(bucket.tokens + tokensToAdd, tokenLimit);
-
-    const timeConsumed = tokensToAdd * this.msPerToken;
-    const newWindowMs = bucket.windowMs + timeConsumed;
-
-    return {
-      tokens: newTokens,
-      windowMs: newWindowMs,
-      formattedWindowMs: new Date(newWindowMs).toISOString(),
-    };
+    return bucket;
   }
 }
 
-export default TokenBucketLimiter;
+export default FixedWindowLimiter;

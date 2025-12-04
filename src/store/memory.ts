@@ -1,27 +1,20 @@
-import { BucketState } from "../../types/types";
-interface Store {
-  get(key: string): Promise<BucketState | null>;
-  set(key: string, state: BucketState): Promise<void>;
-}
+import { Store, RateLimitState } from "../../types/types";
 
 class MemoryStore implements Store {
-	private buckets = new Map<string, BucketState>();
+  private buckets = new Map<string, RateLimitState>();
 
-	async get(key: string): Promise<BucketState | null> {
-		return this.buckets.get(key) || null;
-	}
+  async get(key: string): Promise<RateLimitState | null> {
+    const bucket = this.buckets.get(key);
+    return bucket ?? null;
+  }
 
-	async set(key: string, state: BucketState): Promise<void> {
-		this.buckets.set(key, state);
-	}
+  async set(key: string, state: RateLimitState): Promise<void> {
+    this.buckets.set(key, state);
+  }
 
-	async delete(key: string) {
-		this.buckets.delete(key);
-	}
-
-	async getAll(): Promise<any | null> {
-		return this.buckets;
-	}
+  async delete(key: string): Promise<void> {
+    this.buckets.delete(key);
+  }
 }
 
 export default MemoryStore;

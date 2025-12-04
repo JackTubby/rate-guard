@@ -1,19 +1,57 @@
-export interface RateLimiterOptions {
-  store?: BucketState | null;    // OPTIONAL - handles store instance for redis
-  // cleanupInterval?: number;   // OPTIONAL - clean up interval timing
-  // enableCleanup?: boolean;    // OPTIONAL - allow clean up operation
-  timeFrame?: number;            // OPTIONAL - window length
-  tokenLimit?: number;           // OPTIONAL - allowed tokens within the window
-  value?: string;                // OPTIONAL - value to use as the key optional as defaults to ip
-  message?: any;                 // OPTIONAL - an OPTIONAL message to return to users who exceed limit
-  storeType: StoreTypes;         // REQUIRED - type of storage to use
-  type: string;                  // REQUIRED - the type of algo to use
+export type RateLimiterOptions =
+  | {
+      storeType: "memory";          // REQUIRED - type of storage to use
+      store?: Store | null;         // OPTIONAL - handles store instance for redis
+      timeFrame?: number;           // OPTIONAL - window length
+      tokenLimit?: number;          // OPTIONAL - allowed tokens within the window
+      value?: string;               // OPTIONAL - value to use as the key optional as defaults to ip
+      message?: unknown;            // OPTIONAL - an OPTIONAL message to return to users who exceed limit
+      type: string;                 // REQUIRED - the type of algo to use
+      ttl?: number;                  // OPTIONAL - data set time to live
+    }
+  | {
+      storeType: "redis";           // REQUIRED - type of storage to use
+      store: RedisClient;           // REQUIRED - handles store instance for redis
+      timeFrame?: number;           // OPTIONAL - window length
+      tokenLimit?: number;          // OPTIONAL - allowed tokens within the window
+      value?: string;               // OPTIONAL - value to use as the key optional as defaults to ip
+      message?: unknown;            // OPTIONAL - an OPTIONAL message to return to users who exceed limit
+      type: string;                 // REQUIRED - the type of algo to use
+      ttl?: number;                  // OPTIONAL - data set time to live
+    };
+
+
+export type StoreTypes = "redis" | "memory";
+
+export interface RateLimitState {
+  tokens: number;
+  windowMs: number;
+  formattedWindowMs: string;
 }
 
-type StoreTypes = "redis" | "memory";
+export interface Store {
+  get(key: string): Promise<RateLimitState | null>;
+  set(key: string, value: RateLimitState, ttl?: number): Promise<void>;
+  delete(key: string): Promise<void>;
+}
 
-export interface BucketState {
-  tokens: number;
-  lastRefill: number;
-  formattedLastRefill: string;
+export interface RedisClient {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, options?: { PX: number }): Promise<void>;
+  unlink(key: string): Promise<void>;
+}
+
+export interface TokenBucketOptions {
+  tokenLimit: number;
+  timeFrame: number;
+}
+
+export interface RateLimitResult {
+  success: boolean;
+  message: string;
+}
+
+export interface FixedWindowOptions {
+  tokenLimit: number;
+  timeFrame: number;
 }

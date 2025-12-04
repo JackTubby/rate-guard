@@ -1,4 +1,4 @@
-import TokenBucketLimiter from "../../../src/limiters/bucket";
+import FixedWindowLimiter from "../../../src/limiters/fixed-window";
 import { RateLimitStore } from "../../../src/store/rate-limit-store";
 import { RateLimitState } from "../../../types/types";
 
@@ -25,12 +25,11 @@ const createMockStore = () => {
   };
 };
 
-const asRateLimitStore = (mock: ReturnType<typeof createMockStore>) =>
-  mock as unknown as RateLimitStore;
+type MockStore = ReturnType<typeof createMockStore>;
 
-describe("TokenBucketLimiter", () => {
+describe("FixedWindowLimiter", () => {
   let mockStore: ReturnType<typeof createMockStore>;
-  let limiter: TokenBucketLimiter;
+  let limiter: FixedWindowLimiter;
 
   beforeEach(() => {
     mockStore = createMockStore();
@@ -39,9 +38,9 @@ describe("TokenBucketLimiter", () => {
 
   describe("checkLimit", () => {
     test("should create new bucket on first request", async () => {
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 10,
-        timeFrame: 10000,
+        timeFrame: 60000,
       });
 
       const result = await limiter.checkLimit("test-key");
@@ -53,9 +52,9 @@ describe("TokenBucketLimiter", () => {
     });
 
     test("should grant token when tokens available", async () => {
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 10,
-        timeFrame: 10000,
+        timeFrame: 60000,
       });
 
       await limiter.checkLimit("test-key");
@@ -66,7 +65,7 @@ describe("TokenBucketLimiter", () => {
     });
 
     test("should reject when no tokens available", async () => {
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 2,
         timeFrame: 60000,
       });
@@ -76,11 +75,11 @@ describe("TokenBucketLimiter", () => {
       const result = await limiter.checkLimit("test-key");
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe("Rate limit exceeded");
+      expect(result.message).toBe("No tokens left");
     });
 
     test("should exhaust all tokens correctly", async () => {
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 5,
         timeFrame: 60000,
       });
@@ -95,7 +94,7 @@ describe("TokenBucketLimiter", () => {
     });
 
     test("should not save state when rate limited", async () => {
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 1,
         timeFrame: 60000,
       });
@@ -109,7 +108,7 @@ describe("TokenBucketLimiter", () => {
     });
 
     test("should handle separate keys independently", async () => {
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 1,
         timeFrame: 60000,
       });
@@ -125,26 +124,24 @@ describe("TokenBucketLimiter", () => {
     });
   });
 
-  describe("refill", () => {
-    test("should refill tokens after time passes", async () => {
+  describe("refill (window reset)", () => {
+    test("should reset tokens when window expires", async () => {
       const now = Date.now();
       jest.spyOn(Date, "now").mockReturnValue(now);
 
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
-        tokenLimit: 10,
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
+        tokenLimit: 5,
         timeFrame: 10000,
       });
 
-      await limiter.checkLimit("test-key");
-
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 5; i++) {
         await limiter.checkLimit("test-key");
       }
 
       let result = await limiter.checkLimit("test-key");
       expect(result.success).toBe(false);
 
-      jest.spyOn(Date, "now").mockReturnValue(now + 5000);
+      jest.spyOn(Date, "now").mockReturnValue(now + 10001);
 
       for (let i = 0; i < 5; i++) {
         result = await limiter.checkLimit("test-key");
@@ -157,20 +154,21 @@ describe("TokenBucketLimiter", () => {
       jest.restoreAllMocks();
     });
 
-    test("should not refill when insufficient time passed", async () => {
+    test("should not reset tokens before window expires", async () => {
       const now = Date.now();
       jest.spyOn(Date, "now").mockReturnValue(now);
 
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
-        tokenLimit: 10,
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
+        tokenLimit: 5,
         timeFrame: 10000,
       });
 
-      for (let i = 0; i < 10; i++) {
+      // Exhaust all tokens
+      for (let i = 0; i < 5; i++) {
         await limiter.checkLimit("test-key");
       }
 
-      jest.spyOn(Date, "now").mockReturnValue(now + 500);
+      jest.spyOn(Date, "now").mockReturnValue(now + 9999);
 
       const result = await limiter.checkLimit("test-key");
       expect(result.success).toBe(false);
@@ -178,89 +176,61 @@ describe("TokenBucketLimiter", () => {
       jest.restoreAllMocks();
     });
 
-    test("should cap refill at tokenLimit", async () => {
-      const now = Date.now();
+    test("should align windowMs to window boundary on reset", async () => {
+      const now = 1000000;
       jest.spyOn(Date, "now").mockReturnValue(now);
 
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
+      mockStore.createState = jest.fn((tokens: number) => ({
+        tokens,
+        windowMs: now,
+        formattedWindowMs: new Date(now).toISOString(),
+      }));
+
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
         tokenLimit: 5,
-        timeFrame: 5000,
+        timeFrame: 10000,
       });
+
+      // Exhaust all tokens
+      for (let i = 0; i < 5; i++) {
+        await limiter.checkLimit("test-key");
+      }
+
+      // Advance time by 25000ms (2.5 windows)
+      jest.spyOn(Date, "now").mockReturnValue(now + 25000);
 
       await limiter.checkLimit("test-key");
 
-      jest.spyOn(Date, "now").mockReturnValue(now + 10000);
+      const savedState = mockStore.save.mock.calls.slice(
+        -1
+      )[0][1] as RateLimitState;
+      expect(savedState.windowMs).toBe(now + 20000);
 
-      for (let i = 0; i < 5; i++) {
+      jest.restoreAllMocks();
+    });
+
+    test("should reset to full tokenLimit on window expiry", async () => {
+      const now = Date.now();
+      jest.spyOn(Date, "now").mockReturnValue(now);
+
+      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
+        tokenLimit: 10,
+        timeFrame: 10000,
+      });
+
+      for (let i = 0; i < 3; i++) {
+        await limiter.checkLimit("test-key");
+      }
+
+      jest.spyOn(Date, "now").mockReturnValue(now + 10001);
+
+      for (let i = 0; i < 10; i++) {
         const result = await limiter.checkLimit("test-key");
         expect(result.success).toBe(true);
       }
 
       const result = await limiter.checkLimit("test-key");
       expect(result.success).toBe(false);
-
-      jest.restoreAllMocks();
-    });
-
-    test("should advance windowMs correctly on refill", async () => {
-      const now = 1000000;
-      jest.spyOn(Date, "now").mockReturnValue(now);
-
-      mockStore.createState = jest.fn((tokens: number) => ({
-        tokens,
-        windowMs: now,
-        formattedWindowMs: new Date(now).toISOString(),
-      }));
-
-      limiter = new TokenBucketLimiter(mockStore as unknown as RateLimitStore, {
-        tokenLimit: 10,
-        timeFrame: 10000,
-      });
-
-      for (let i = 0; i < 10; i++) {
-        await limiter.checkLimit("test-key");
-      }
-
-      jest.spyOn(Date, "now").mockReturnValue(now + 3500);
-
-      await limiter.checkLimit("test-key");
-
-      const savedState = mockStore.save.mock.calls.slice(
-        -1
-      )[0][1] as RateLimitState;
-      expect(savedState.windowMs).toBe(now + 3000);
-
-      jest.restoreAllMocks();
-    });
-
-    test("should accumulate partial refills correctly", async () => {
-      const now = 1000000;
-      jest.spyOn(Date, "now").mockReturnValue(now);
-
-      mockStore.createState = jest.fn((tokens: number) => ({
-        tokens,
-        windowMs: now,
-        formattedWindowMs: new Date(now).toISOString(),
-      }));
-
-      limiter = new TokenBucketLimiter(asRateLimitStore(mockStore), {
-        tokenLimit: 10,
-        timeFrame: 10000,
-      });
-
-      for (let i = 0; i < 5; i++) {
-        await limiter.checkLimit("test-key");
-      }
-
-      jest.spyOn(Date, "now").mockReturnValue(now + 2500);
-
-      await limiter.checkLimit("test-key");
-
-      const savedState = mockStore.save.mock.calls.slice(
-        -1
-      )[0][1] as RateLimitState;
-      expect(savedState.windowMs).toBe(now + 2000);
-      expect(savedState.tokens).toBe(6);
 
       jest.restoreAllMocks();
     });

@@ -1,9 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { RateLimiterOptions } from "../types/types";
-import CleanUp from "./cleanup";
 import RateLimiterFactory from "./limiter";
 import { RateGuardError } from "./errors/errors";
-import { criticalOptions } from "./helpers/entry-helpers";
+import { criticalOptions, resolveRateLimitKey } from "./helpers/entry-helpers";
 
 export function createRateLimiter(options: RateLimiterOptions) {
   const validateOptions = criticalOptions(options);
@@ -11,9 +10,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
     throw new RateGuardError("RGEC-0001", `${validateOptions.join(", ")}`);
   }
 
-  const storeType = options.storeType || "memory";
-  const algorithm = options.type;
-  const limiter = RateLimiterFactory.create(algorithm, options, storeType);
+  const limiter = RateLimiterFactory.create(options);
 
   return async function rateLimiter(
     req: Request,
@@ -21,25 +18,16 @@ export function createRateLimiter(options: RateLimiterOptions) {
     next: NextFunction
   ) {
     try {
-      const key =
-        req.headers["x-rate-guard-key"] ||
-        req.ip ||
-        req.connection.remoteAddress ||
-        null;
-      if (!key || typeof key != "string") {
-        throw new RateGuardError(
-          "RGEC-0006",
-          "x-rate-guard-key was not passed and fallback solution of ip was missing from request"
-        );
-      }
+      const key = resolveRateLimitKey(options, req);
 
       const canProceed = await limiter.checkLimit(key);
       if (canProceed.success) {
         next();
       } else {
-        return res.status(429).json({ message: options?.message ?? "Too many requests" });
+        return res
+          .status(429)
+          .json({ message: options?.message ?? "Too many requests" });
       }
-
     } catch (err) {
       if (err instanceof RateGuardError) {
         return res.status(500).json({
