@@ -1,11 +1,19 @@
-import { RateLimitState, TokenBucketOptions, RateLimitResult } from "../../types/types";
+import {
+  RateLimitState,
+  TokenBucketOptions,
+  RateLimitResult,
+} from "../../types/types";
 import { RateLimitStore } from "../store/rate-limit-store";
 
 class TokenBucketLimiter {
+  private readonly msPerToken: number;
+
   constructor(
     private bucketStore: RateLimitStore,
     private options: TokenBucketOptions
-  ) {}
+  ) {
+    this.msPerToken = options.timeFrame / options.tokenLimit;
+  }
 
   async checkLimit(key: string): Promise<RateLimitResult> {
     const bucket = await this.bucketStore.get(key);
@@ -20,24 +28,39 @@ class TokenBucketLimiter {
 
     const refilled = this.refill(bucket);
 
-    if (refilled.tokens === 0) {
-      return { success: false, message: "No tokens left" };
+    if (refilled.tokens < 1) {
+      return { success: false, message: "Rate limit exceeded" };
     }
 
-    const decremented = this.bucketStore.createState(refilled.tokens - 1);
+    const decremented: RateLimitState = {
+      ...refilled,
+      tokens: refilled.tokens - 1,
+    };
     await this.bucketStore.save(key, decremented);
     return { success: true, message: "Token granted" };
   }
 
   private refill(bucket: RateLimitState): RateLimitState {
-    const { tokenLimit, timeFrame } = this.options;
+    const { tokenLimit } = this.options;
     const now = Date.now();
     const timePassed = now - bucket.windowMs;
-    const refillRate = tokenLimit / timeFrame;
-    const tokensToAdd = Math.floor(timePassed * refillRate);
+
+    const tokensToAdd = Math.floor(timePassed / this.msPerToken);
+
+    if (tokensToAdd === 0) {
+      return bucket;
+    }
+
     const newTokens = Math.min(bucket.tokens + tokensToAdd, tokenLimit);
 
-    return this.bucketStore.createState(newTokens);
+    const timeConsumed = tokensToAdd * this.msPerToken;
+    const newWindowMs = bucket.windowMs + timeConsumed;
+
+    return {
+      tokens: newTokens,
+      windowMs: newWindowMs,
+      formattedWindowMs: new Date(newWindowMs).toISOString(),
+    };
   }
 }
 

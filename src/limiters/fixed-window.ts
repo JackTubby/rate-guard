@@ -1,4 +1,8 @@
-import { RateLimitState, FixedWindowOptions, RateLimitResult } from "../../types/types";
+import {
+  RateLimitState,
+  FixedWindowOptions,
+  RateLimitResult,
+} from "../../types/types";
 import { RateLimitStore } from "../store/rate-limit-store";
 
 class FixedWindowLimiter {
@@ -19,11 +23,6 @@ class FixedWindowLimiter {
     }
 
     const refilled = this.refill(bucket);
-    const needsReset = refilled.windowMs !== bucket.windowMs;
-
-    if (needsReset) {
-      await this.bucketStore.save(key, refilled);
-    }
 
     if (refilled.tokens === 0) {
       return { success: false, message: "No tokens left" };
@@ -43,7 +42,14 @@ class FixedWindowLimiter {
     const timePassed = now - bucket.windowMs;
 
     if (timePassed >= timeFrame) {
-      return this.bucketStore.createState(tokenLimit);
+      const windowsElapsed = Math.floor(timePassed / timeFrame);
+      const newWindowMs = bucket.windowMs + windowsElapsed * timeFrame;
+
+      return {
+        tokens: tokenLimit,
+        windowMs: newWindowMs,
+        formattedWindowMs: new Date(newWindowMs).toISOString(),
+      };
     }
 
     return bucket;
