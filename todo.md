@@ -1,6 +1,3 @@
 - Actually implement cleanup properly
 - Currently in the index.ts we get the ip address from the request this should continue to be the default behaviour but we should allow that if the user passes a arg like "value" then that should be the key instead
-- Rename lastRefill to better match all algos e.g. window (ws)
-- Stop setting defaults in algos must be done earlier on
-- Expiration e.g. redis.set(key, value, 'EX', 3600); (ttlSeconds)
 - Implement LRU for memory
