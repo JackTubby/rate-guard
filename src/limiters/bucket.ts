@@ -1,104 +1,54 @@
-import MemoryStore from "../store/memory";
-import CustomRedisStore from "../store/redis";
 import { BucketState } from "../../types/types";
+import { RateLimitStore } from "../store/rate-limit-store";
 
-class BucketLimiter {
-  key: string | null;
-  timeFrame: number;
-  windowMs!: number;
-  store: any;
+interface TokenBucketOptions {
   tokenLimit: number;
-  bucketStore: BucketState;
-  usersBucket: any;
-  ttl: number;
+  timeFrame: number;
+}
 
-  constructor(options: any, storeInstance: any) {
-    this.timeFrame = options.timeFrame
-    this.store = storeInstance
-    this.tokenLimit = options.tokenLimit
-    this.bucketStore = {
-      tokens: 0,
-      windowMs: 0,
-      formattedWindowMs: "",
-    };
-    this.key = "";
-    this.ttl = options.ttl;
+interface RateLimitResult {
+  success: boolean;
+  message: string;
+}
+
+class TokenBucketLimiter {
+  constructor(
+    private bucketStore: RateLimitStore,
+    private options: TokenBucketOptions
+  ) {}
+
+  async checkLimit(key: string): Promise<RateLimitResult> {
+    const bucket = await this.bucketStore.get(key);
+
+    if (!bucket) {
+      const newState = this.bucketStore.createState(
+        this.options.tokenLimit - 1
+      );
+      await this.bucketStore.save(key, newState);
+      return { success: true, message: "Bucket created and token granted" };
+    }
+
+    const refilled = this.refill(bucket);
+
+    if (refilled.tokens === 0) {
+      return { success: false, message: "No tokens left" };
+    }
+
+    const decremented = this.bucketStore.createState(refilled.tokens - 1);
+    await this.bucketStore.save(key, decremented);
+    return { success: true, message: "Token granted" };
   }
 
-  public async checkLimit(key: string) {
-    this.key = key;
-    this.usersBucket = await this.store.get(key);
-
-    // if le bucket does not exist
-    if (!this.usersBucket) {
-      const res = await this.handleBucketNotExisting();
-      if (res) {
-        return { success: true, message: "Bucket created and token granted" };
-      }
-      return { success: false, message: "Failed to create bucket" };
-    }
-    // if le bucket does exist
-    else {
-      await this.handleBucketRefill();
-
-      if (this.usersBucket.tokens === 0) {
-        return { success: false, message: "No tokens left" };
-      } else {
-        const res = await this.handleBucketExisting();
-        if (res) {
-          return { success: true, message: "Token granted" };
-        }
-        return { success: false, message: "Failed to update bucket" };
-      }
-    }
-  }
-
-  private async handleBucketRefill() {
-    this.windowMs = this.usersBucket.windowMs;
-    const now = new Date().getTime();
-    const timePassed = now - this.windowMs;
-    const refillRate = this.tokenLimit / this.timeFrame;
+  private refill(bucket: BucketState): BucketState {
+    const { tokenLimit, timeFrame } = this.options;
+    const now = Date.now();
+    const timePassed = now - bucket.windowMs;
+    const refillRate = tokenLimit / timeFrame;
     const tokensToAdd = Math.floor(timePassed * refillRate);
-    const currentTokens = this.usersBucket.tokens;
-    const tokensActuallyAdded = Math.min(
-      tokensToAdd,
-      this.tokenLimit - currentTokens
-    );
-    const timeConsumed = tokensActuallyAdded / refillRate;
-    const isOverspill = currentTokens + tokensToAdd > this.tokenLimit;
+    const newTokens = Math.min(bucket.tokens + tokensToAdd, tokenLimit);
 
-    this.bucketStore = {
-      tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,
-      windowMs: now,
-      formattedWindowMs: new Date().toISOString(),
-    };
-    await this.store.set(this.key, this.bucketStore);
-    this.usersBucket = {
-      ...this.usersBucket,
-      tokens: isOverspill ? this.tokenLimit : currentTokens + tokensToAdd,
-    };
-  }
-
-  private async handleBucketNotExisting() {
-    const now = new Date().getTime();
-    this.bucketStore = {
-      tokens: this.tokenLimit - 1,
-      windowMs: now,
-      formattedWindowMs: new Date().toISOString(),
-    };
-    await this.store.set(this.key, this.bucketStore, this.ttl);
-    return true;
-  }
-
-  private async handleBucketExisting() {
-    this.bucketStore = {
-      tokens: this.usersBucket.tokens - 1,
-      windowMs: this.bucketStore.windowMs,
-      formattedWindowMs: new Date().toISOString(),
-    };
-    await this.store.set(this.key, this.bucketStore);
-    return true;
+    return this.bucketStore.createState(newTokens);
   }
 }
 
-export default BucketLimiter;
+export default TokenBucketLimiter;

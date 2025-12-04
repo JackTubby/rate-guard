@@ -1,91 +1,62 @@
-import MemoryStore from "../store/memory";
-import CustomRedisStore from "../store/redis";
-import { BucketState, RateLimiterOptions, StoreTypes } from "../../types/types";
+import { BucketState } from "../../types/types";
+import { RateLimitStore } from "../store/rate-limit-store";
+
+interface FixedWindowOptions {
+  tokenLimit: number;
+  timeFrame: number;
+}
+
+interface RateLimitResult {
+  success: boolean;
+  message: string;
+}
 
 class FixedWindowLimiter {
-  key: string | null;
-  timeFrame: number;
-  windowMs!: number;
-  store: any;
-  tokenLimit: number;
-  bucketStore: BucketState;
-  usersBucket: any;
-  ttl: number;
+  constructor(
+    private bucketStore: RateLimitStore,
+    private options: FixedWindowOptions
+  ) {}
 
-  constructor(options: any, storeInstance: any) {
-    this.timeFrame = options.timeFrame
-    this.store = storeInstance
-    this.tokenLimit = options.tokenLimit
-    this.bucketStore = {
-      tokens: 0,
-      windowMs: 0,
-      formattedWindowMs: "",
-    };
-    this.key = "";
-    this.ttl = options.ttl;
-  }
+  async checkLimit(key: string): Promise<RateLimitResult> {
+    const bucket = await this.bucketStore.get(key);
 
-  public async checkLimit(key: string) {
-    this.key = key;
-    this.usersBucket = await this.store.get(key);
-
-    if (!this.usersBucket) {
-      const res = await this.handleBucketNotExisting();
-      if (res) {
-        return { success: true, message: "Bucket created and token granted" };
-      }
-      return { success: false, message: "Failed to create bucket" };
-    } else {
-      // bucket exists -
-      await this.handleBucketRefill();
-
-      if (this.usersBucket.tokens === 0) {
-        return { success: false, message: "No tokens left" };
-      } else {
-        const res = await this.handleBucketExisting();
-        if (res) {
-          return { success: true, message: "Bucket created and token granted" };
-        }
-        return { success: false, message: "Failed to create bucket" };
-      }
+    if (!bucket) {
+      const newState = this.bucketStore.createState(
+        this.options.tokenLimit - 1
+      );
+      await this.bucketStore.save(key, newState);
+      return { success: true, message: "Bucket created and token granted" };
     }
-  }
 
-  private async handleBucketRefill() {
-    this.windowMs = this.usersBucket.windowMs;
-    const now = new Date().getTime();
-    const timePassed = now - this.windowMs;
-    if (timePassed >= this.timeFrame) {
-      this.usersBucket.tokens = this.tokenLimit;
-      this.usersBucket.windowMs = now;
-      this.usersBucket.formattedWindowMs = new Date().toISOString(),
-      await this.store.set(this.key, this.usersBucket);
+    const refilled = this.refill(bucket);
+    const needsReset = refilled.windowMs !== bucket.windowMs;
+
+    if (needsReset) {
+      await this.bucketStore.save(key, refilled);
     }
-  }
 
-  private async handleBucketExisting() {
-    this.bucketStore = {
-      tokens: this.usersBucket.tokens - 1,
-      windowMs: this.usersBucket.windowMs,
-      formattedWindowMs: this.usersBucket.formattedWindowMs,
-    };
-    await this.store.set(this.key, this.bucketStore);
-    return true;
-  }
-
-  private async handleBucketNotExisting() {
-    const now = new Date().getTime();
-    this.bucketStore = {
-      tokens: this.tokenLimit - 1,
-      windowMs: now,
-      formattedWindowMs: new Date().toISOString(),
-    };
-    try {
-      await this.store.set(this.key, this.bucketStore, this.ttl);
-    } catch (err) {
-      return false;
+    if (refilled.tokens === 0) {
+      return { success: false, message: "No tokens left" };
     }
-    return true;
+
+    const decremented: BucketState = {
+      ...refilled,
+      tokens: refilled.tokens - 1,
+    };
+    await this.bucketStore.save(key, decremented);
+    return { success: true, message: "Token granted" };
+  }
+
+  private refill(bucket: BucketState): BucketState {
+    const { tokenLimit, timeFrame } = this.options;
+    const now = Date.now();
+    const timePassed = now - bucket.windowMs;
+
+    if (timePassed >= timeFrame) {
+      return this.bucketStore.createState(tokenLimit);
+    }
+
+    return bucket;
   }
 }
 

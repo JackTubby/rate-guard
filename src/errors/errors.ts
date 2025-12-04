@@ -34,6 +34,11 @@ const ERROR_MAP = {
     position: "Internal" as const,
     message: "Invalid algorithm type: {details}.",
   },
+  "RGEC-0008": {
+    name: "Invalid store" as const,
+    position: "Internal" as const,
+    message: "Unknown store type: {details}.",
+  },
   "RGEC-TEST": {
     name: "Test error" as const,
     position: "Internal" as const,
