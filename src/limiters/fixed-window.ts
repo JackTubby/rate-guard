@@ -1,15 +1,5 @@
-import { RateLimitState } from "../../types/types";
+import { RateLimitState, FixedWindowOptions, RateLimitResult } from "../../types/types";
 import { RateLimitStore } from "../store/rate-limit-store";
-
-interface FixedWindowOptions {
-  tokenLimit: number;
-  timeFrame: number;
-}
-
-interface RateLimitResult {
-  success: boolean;
-  message: string;
-}
 
 class FixedWindowLimiter {
   constructor(

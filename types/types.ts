@@ -31,7 +31,7 @@ export interface RateLimitState {
 
 export interface Store {
   get(key: string): Promise<RateLimitState | null>;
-  set(key: string, state: RateLimitState): Promise<void>;
+  set(key: string, value: RateLimitState, ttl?: number): Promise<void>;
   delete(key: string): Promise<void>;
 }
 
@@ -39,4 +39,19 @@ export interface RedisClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, options?: { PX: number }): Promise<void>;
   unlink(key: string): Promise<void>;
+}
+
+export interface TokenBucketOptions {
+  tokenLimit: number;
+  timeFrame: number;
+}
+
+export interface RateLimitResult {
+  success: boolean;
+  message: string;
+}
+
+export interface FixedWindowOptions {
+  tokenLimit: number;
+  timeFrame: number;
 }

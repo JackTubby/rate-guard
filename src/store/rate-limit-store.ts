@@ -1,9 +1,4 @@
-import { RateLimitState } from "../../types/types";
-
-interface Store {
-  get(key: string): Promise<RateLimitState | null>;
-  set(key: string, value: RateLimitState, ttl?: number): Promise<void>;
-}
+import { RateLimitState, Store } from "../../types/types";
 
 export class RateLimitStore {
   constructor(

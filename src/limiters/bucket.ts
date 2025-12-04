@@ -1,15 +1,5 @@
-import { RateLimitState } from "../../types/types";
+import { RateLimitState, TokenBucketOptions, RateLimitResult } from "../../types/types";
 import { RateLimitStore } from "../store/rate-limit-store";
-
-interface TokenBucketOptions {
-  tokenLimit: number;
-  timeFrame: number;
-}
-
-interface RateLimitResult {
-  success: boolean;
-  message: string;
-}
 
 class TokenBucketLimiter {
   constructor(
