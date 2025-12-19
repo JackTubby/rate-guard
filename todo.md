@@ -1,6 +1,8 @@
 - Actually implement cleanup properly
-- Currently in the index.ts we get the ip address from the request this should continue to be the default behaviour but we should allow that if the user passes a arg like "value" then that should be the key instead
 - Implement LRU for memory
 - getRemainingTokens method for observability (useful for rate limit headers like X-RateLimit-Remaining)
 - redis atomic lua script look into
 - Readme: "Concurrency Considerations" section explaining that the default implementation isn't atomic, and users needing strict enforcement under high concurrency should implement their own atomic store. 
+- Add response headers
+- Add keyGenerator function instead of custom header
+- Remove hardcoded "000" should follow other algos -- use redis multi key like fixedbucket: etc..
