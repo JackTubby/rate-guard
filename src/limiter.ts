@@ -13,10 +13,10 @@ class RateLimiterFactory {
     let store;
     switch (normalisedOptions.storeType) {
       case "redis":
-        store = new CustomRedisStore(normalisedOptions.store);
+        store = new CustomRedisStore(normalisedOptions.store, options.type);
         break;
       case "memory":
-        store = new MemoryStore();
+        store = new MemoryStore(options.type);
         break;
       default:
         throw new RateGuardError(
