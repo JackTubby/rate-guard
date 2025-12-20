@@ -7,52 +7,47 @@ import { RateLimitStore } from "../store/rate-limit-store";
 
 class FixedWindowLimiter {
   constructor(
-    private bucketStore: RateLimitStore,
+    private store: RateLimitStore,
     private options: FixedWindowOptions
   ) {}
 
   async checkLimit(key: string): Promise<RateLimitResult> {
-    const bucket = await this.bucketStore.get(key);
+    const state = await this.store.get(key);
 
-    if (!bucket) {
-      const newState = this.bucketStore.createState(
-        this.options.tokenLimit - 1
-      );
-      await this.bucketStore.save(key, newState);
-      return { success: true, message: "Bucket created and token granted" };
+    if (!state) {
+      // First request consumes a token
+      const newState = this.store.createState(this.options.tokenLimit - 1);
+      await this.store.save(key, newState);
+      return { success: true, message: "Window created and token granted" };
     }
 
-    const refilled = this.refill(bucket);
+    const current = this.resetIfExpired(state);
 
-    if (refilled.tokens === 0) {
+    if (current.tokens === 0) {
       return { success: false, message: "No tokens left" };
     }
 
     const decremented: RateLimitState = {
-      ...refilled,
-      tokens: refilled.tokens - 1,
+      ...current,
+      tokens: current.tokens - 1,
     };
-    await this.bucketStore.save(key, decremented);
+    await this.store.save(key, decremented);
     return { success: true, message: "Token granted" };
   }
 
-  private refill(bucket: RateLimitState): RateLimitState {
+  private resetIfExpired(state: RateLimitState): RateLimitState {
     const { tokenLimit, timeFrame } = this.options;
     const now = Date.now();
-    const timePassed = now - bucket.windowMs;
 
-    if (timePassed >= timeFrame) {
-      const windowsElapsed = Math.floor(timePassed / timeFrame);
-      const newWindowMs = bucket.windowMs + windowsElapsed * timeFrame;
-
+    if (now - state.windowMs >= timeFrame) {
       return {
         tokens: tokenLimit,
-        windowMs: newWindowMs,
-        formattedWindowMs: new Date(newWindowMs).toISOString(),
+        windowMs: now,
+        formattedWindowMs: new Date(now).toISOString(),
       };
     }
 
-    return bucket;
+    return state;
   }
 }
 
