@@ -186,8 +186,8 @@ describe("RateLimiterFactory", () => {
 
         const limiter = RateLimiterFactory.create(options);
 
-        await limiter.checkLimit("test-key");
-        const result = await limiter.checkLimit("test-key");
+        await limiter.checkLimit("rateGuard:tokenBucket:test-key");
+        const result = await limiter.checkLimit("rateGuard:tokenBucket:test-key");
 
         expect(result.success).toBe(false);
       });
@@ -202,11 +202,11 @@ describe("RateLimiterFactory", () => {
         const limiter = RateLimiterFactory.create(options);
 
         for (let i = 0; i < 50; i++) {
-          const result = await limiter.checkLimit("test-key");
+          const result = await limiter.checkLimit("rateGuard:tokenBucket:test-key");
           expect(result.success).toBe(true);
         }
 
-        const result = await limiter.checkLimit("test-key");
+        const result = await limiter.checkLimit("rateGuard:tokenBucket:test-key");
         expect(result.success).toBe(false);
       });
     });

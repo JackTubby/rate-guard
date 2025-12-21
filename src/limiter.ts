@@ -13,10 +13,10 @@ class RateLimiterFactory {
     let store;
     switch (normalisedOptions.storeType) {
       case "redis":
-        store = new CustomRedisStore(normalisedOptions.store);
+        store = new CustomRedisStore(normalisedOptions.store, options.type);
         break;
       case "memory":
-        store = new MemoryStore();
+        store = new MemoryStore(options.type);
         break;
       default:
         throw new RateGuardError(
@@ -38,19 +38,19 @@ class RateLimiterFactory {
       case "fixedWindow":
         return new FixedWindowLimiter(rateLimitStore, limiterOptions);
       default:
-        throw new RateGuardError(
-          "RGEC-0007",
-          `${normalisedOptions.type}`
-        );
+        throw new RateGuardError("RGEC-0007", `${normalisedOptions.type}`);
     }
   }
 
   private static normalizeOptions(options: RateLimiterOptions) {
+    const timeFrame = options?.timeFrame ?? 900000;
+    const tokenLimit = options?.tokenLimit ?? 50;
+
     return {
-      timeFrame: options?.timeFrame ?? 900000,
-      tokenLimit: options?.tokenLimit ?? 50,
-      ttl: options?.ttl ?? 86400000,
       ...options,
+      timeFrame,
+      tokenLimit,
+      ttl: options?.ttl ?? timeFrame,
     };
   }
 }

@@ -7,52 +7,65 @@ import { RateLimitStore } from "../store/rate-limit-store";
 
 class FixedWindowLimiter {
   constructor(
-    private bucketStore: RateLimitStore,
+    private store: RateLimitStore,
     private options: FixedWindowOptions
   ) {}
 
   async checkLimit(key: string): Promise<RateLimitResult> {
-    const bucket = await this.bucketStore.get(key);
+    const state = await this.store.get(key);
 
-    if (!bucket) {
-      const newState = this.bucketStore.createState(
-        this.options.tokenLimit - 1
-      );
-      await this.bucketStore.save(key, newState);
-      return { success: true, message: "Bucket created and token granted" };
-    }
-
-    const refilled = this.refill(bucket);
-
-    if (refilled.tokens === 0) {
-      return { success: false, message: "No tokens left" };
-    }
-
-    const decremented: RateLimitState = {
-      ...refilled,
-      tokens: refilled.tokens - 1,
-    };
-    await this.bucketStore.save(key, decremented);
-    return { success: true, message: "Token granted" };
-  }
-
-  private refill(bucket: RateLimitState): RateLimitState {
-    const { tokenLimit, timeFrame } = this.options;
-    const now = Date.now();
-    const timePassed = now - bucket.windowMs;
-
-    if (timePassed >= timeFrame) {
-      const windowsElapsed = Math.floor(timePassed / timeFrame);
-      const newWindowMs = bucket.windowMs + windowsElapsed * timeFrame;
-
+    if (!state) {
+      // First request consumes a token
+      const newState = this.store.createState(this.options.tokenLimit - 1);
+      await this.store.save(key, newState);
       return {
-        tokens: tokenLimit,
-        windowMs: newWindowMs,
-        formattedWindowMs: new Date(newWindowMs).toISOString(),
+        success: true,
+        message: "Window created and token granted",
+        tokensRemaining: this.options.tokenLimit - 1,
+        tokensLimit: this.options.tokenLimit,
+        tokensReset: this.options.timeFrame,
       };
     }
 
-    return bucket;
+    const current = this.resetIfExpired(state);
+
+    if (current.tokens === 0) {
+      return {
+        success: false,
+        message: "No tokens left",
+        tokensRemaining: state.tokens,
+        tokensLimit: this.options.tokenLimit,
+        tokensReset: this.options.timeFrame,
+      };
+    }
+
+    const decremented: RateLimitState = {
+      ...current,
+      tokens: current.tokens - 1,
+    };
+    await this.store.save(key, decremented);
+    return {
+      success: true,
+      message: "Token granted",
+      tokensRemaining: state.tokens,
+      tokensLimit: this.options.tokenLimit,
+      tokensReset: this.options.timeFrame,
+    };
+  }
+
+  private resetIfExpired(state: RateLimitState): RateLimitState {
+    const { tokenLimit, timeFrame } = this.options;
+    const now = Date.now();
+
+    if (now - state.windowMs >= timeFrame) {
+      return {
+        tokens: tokenLimit,
+        windowMs: now,
+        formattedWindowMs: new Date(now).toISOString(),
+      };
+    }
+
+    return state;
   }
 }
 

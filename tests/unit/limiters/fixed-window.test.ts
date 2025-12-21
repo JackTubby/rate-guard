@@ -43,10 +43,10 @@ describe("FixedWindowLimiter", () => {
         timeFrame: 60000,
       });
 
-      const result = await limiter.checkLimit("test-key");
+      const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
 
       expect(result.success).toBe(true);
-      expect(result.message).toBe("Bucket created and token granted");
+      expect(result.message).toBe("Window created and token granted");
       expect(mockStore.createState).toHaveBeenCalledWith(9);
       expect(mockStore.save).toHaveBeenCalled();
     });
@@ -57,8 +57,8 @@ describe("FixedWindowLimiter", () => {
         timeFrame: 60000,
       });
 
-      await limiter.checkLimit("test-key");
-      const result = await limiter.checkLimit("test-key");
+      await limiter.checkLimit("rateGuard:fixedWindow:test-key");
+      const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
 
       expect(result.success).toBe(true);
       expect(result.message).toBe("Token granted");
@@ -70,9 +70,9 @@ describe("FixedWindowLimiter", () => {
         timeFrame: 60000,
       });
 
-      await limiter.checkLimit("test-key");
-      await limiter.checkLimit("test-key");
-      const result = await limiter.checkLimit("test-key");
+      await limiter.checkLimit("rateGuard:fixedWindow:test-key");
+      await limiter.checkLimit("rateGuard:fixedWindow:test-key");
+      const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
 
       expect(result.success).toBe(false);
       expect(result.message).toBe("No tokens left");
@@ -85,11 +85,11 @@ describe("FixedWindowLimiter", () => {
       });
 
       for (let i = 0; i < 5; i++) {
-        const result = await limiter.checkLimit("test-key");
+        const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
         expect(result.success).toBe(true);
       }
 
-      const result = await limiter.checkLimit("test-key");
+      const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       expect(result.success).toBe(false);
     });
 
@@ -99,10 +99,10 @@ describe("FixedWindowLimiter", () => {
         timeFrame: 60000,
       });
 
-      await limiter.checkLimit("test-key");
+      await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       mockStore.save.mockClear();
 
-      await limiter.checkLimit("test-key");
+      await limiter.checkLimit("rateGuard:fixedWindow:test-key");
 
       expect(mockStore.save).not.toHaveBeenCalled();
     });
@@ -135,20 +135,20 @@ describe("FixedWindowLimiter", () => {
       });
 
       for (let i = 0; i < 5; i++) {
-        await limiter.checkLimit("test-key");
+        await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       }
 
-      let result = await limiter.checkLimit("test-key");
+      let result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       expect(result.success).toBe(false);
 
       jest.spyOn(Date, "now").mockReturnValue(now + 10001);
 
       for (let i = 0; i < 5; i++) {
-        result = await limiter.checkLimit("test-key");
+        result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
         expect(result.success).toBe(true);
       }
 
-      result = await limiter.checkLimit("test-key");
+      result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       expect(result.success).toBe(false);
 
       jest.restoreAllMocks();
@@ -165,46 +165,13 @@ describe("FixedWindowLimiter", () => {
 
       // Exhaust all tokens
       for (let i = 0; i < 5; i++) {
-        await limiter.checkLimit("test-key");
+        await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       }
 
       jest.spyOn(Date, "now").mockReturnValue(now + 9999);
 
-      const result = await limiter.checkLimit("test-key");
+      const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       expect(result.success).toBe(false);
-
-      jest.restoreAllMocks();
-    });
-
-    test("should align windowMs to window boundary on reset", async () => {
-      const now = 1000000;
-      jest.spyOn(Date, "now").mockReturnValue(now);
-
-      mockStore.createState = jest.fn((tokens: number) => ({
-        tokens,
-        windowMs: now,
-        formattedWindowMs: new Date(now).toISOString(),
-      }));
-
-      limiter = new FixedWindowLimiter(mockStore as unknown as RateLimitStore, {
-        tokenLimit: 5,
-        timeFrame: 10000,
-      });
-
-      // Exhaust all tokens
-      for (let i = 0; i < 5; i++) {
-        await limiter.checkLimit("test-key");
-      }
-
-      // Advance time by 25000ms (2.5 windows)
-      jest.spyOn(Date, "now").mockReturnValue(now + 25000);
-
-      await limiter.checkLimit("test-key");
-
-      const savedState = mockStore.save.mock.calls.slice(
-        -1
-      )[0][1] as RateLimitState;
-      expect(savedState.windowMs).toBe(now + 20000);
 
       jest.restoreAllMocks();
     });
@@ -219,17 +186,17 @@ describe("FixedWindowLimiter", () => {
       });
 
       for (let i = 0; i < 3; i++) {
-        await limiter.checkLimit("test-key");
+        await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       }
 
       jest.spyOn(Date, "now").mockReturnValue(now + 10001);
 
       for (let i = 0; i < 10; i++) {
-        const result = await limiter.checkLimit("test-key");
+        const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
         expect(result.success).toBe(true);
       }
 
-      const result = await limiter.checkLimit("test-key");
+      const result = await limiter.checkLimit("rateGuard:fixedWindow:test-key");
       expect(result.success).toBe(false);
 
       jest.restoreAllMocks();

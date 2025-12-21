@@ -59,62 +59,77 @@ describe("criticalOptions", () => {
 });
 
 describe("resolveRateLimitKey", () => {
-  describe("fixedWindow type", () => {
-    test("should always return '000' for fixedWindow type", () => {
+  describe("keyGenerator", () => {
+    test("should use keyGenerator when provided", async () => {
       const options = {
-        type: "fixedWindow",
+        type: "tokenBucket",
         storeType: "memory",
+        keyGenerator: () => "custom-key",
+      } as const;
+
+      const req = mockRequest();
+      const key = await resolveRateLimitKey(options, req);
+
+      expect(key).toBe("custom-key");
+    });
+
+    test("should pass request to keyGenerator", async () => {
+      const keyGenerator = jest.fn(() => "generated-key");
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+        keyGenerator,
       } as const;
 
       const req = mockRequest({ ip: "192.168.1.1" });
-      const key = resolveRateLimitKey(options, req);
+      await resolveRateLimitKey(options, req);
 
-      expect(key).toBe("000");
+      expect(keyGenerator).toHaveBeenCalledWith(req);
     });
 
-    test("should return '000' regardless of headers for fixedWindow", () => {
+    test("should support async keyGenerator", async () => {
       const options = {
-        type: "fixedWindow",
+        type: "tokenBucket",
         storeType: "memory",
+        keyGenerator: async () => "async-key",
+      } as const;
+
+      const req = mockRequest();
+      const key = await resolveRateLimitKey(options, req);
+
+      expect(key).toBe("async-key");
+    });
+
+    test("should allow keyGenerator to access request properties", async () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+        keyGenerator: (req: any) => `user:${req.headers["x-user-id"]}`,
       } as const;
 
       const req = mockRequest({
-        headers: { "x-rate-guard-key": "custom-key" },
+        headers: { "x-user-id": "12345" },
       });
-      const key = resolveRateLimitKey(options, req);
+      const key = await resolveRateLimitKey(options, req);
 
-      expect(key).toBe("000");
+      expect(key).toBe("user:12345");
     });
   });
 
-  describe("tokenBucket type", () => {
-    test("should use x-rate-guard-key header when present", () => {
-      const options = {
-        type: "tokenBucket",
-        storeType: "memory",
-      } as const;
-
-      const req = mockRequest({
-        headers: { "x-rate-guard-key": "custom-key-123" },
-      });
-      const key = resolveRateLimitKey(options, req);
-
-      expect(key).toBe("custom-key-123");
-    });
-
-    test("should use req.ip when no custom header present", () => {
+  describe("default key resolution", () => {
+    test("should use req.ip when no keyGenerator provided", async () => {
       const options = {
         type: "tokenBucket",
         storeType: "memory",
       } as const;
 
       const req = mockRequest({ ip: "192.168.1.1" });
-      const key = resolveRateLimitKey(options, req);
+      const key = await resolveRateLimitKey(options, req);
 
       expect(key).toBe("192.168.1.1");
     });
 
-    test("should fall back to connection.remoteAddress when ip not available", () => {
+    test("should fall back to connection.remoteAddress when ip not available", async () => {
       const options = {
         type: "tokenBucket",
         storeType: "memory",
@@ -124,27 +139,29 @@ describe("resolveRateLimitKey", () => {
         ip: undefined,
         connection: { remoteAddress: "172.16.0.1" },
       });
-      const key = resolveRateLimitKey(options, req);
+      const key = await resolveRateLimitKey(options, req);
 
       expect(key).toBe("172.16.0.1");
     });
 
-    test("should prioritize x-rate-guard-key over req.ip", () => {
+    test("should prefer req.ip over connection.remoteAddress", async () => {
       const options = {
         type: "tokenBucket",
         storeType: "memory",
       } as const;
 
       const req = mockRequest({
-        ip: "192.168.1.1",
-        headers: { "x-rate-guard-key": "header-key" },
+        ip: "10.0.0.1",
+        connection: { remoteAddress: "172.16.0.1" },
       });
-      const key = resolveRateLimitKey(options, req);
+      const key = await resolveRateLimitKey(options, req);
 
-      expect(key).toBe("header-key");
+      expect(key).toBe("10.0.0.1");
     });
+  });
 
-    test("should throw RateGuardError when no key can be resolved", () => {
+  describe("error handling", () => {
+    test("should throw RateGuardError when no key can be resolved", async () => {
       const options = {
         type: "tokenBucket",
         storeType: "memory",
@@ -156,10 +173,12 @@ describe("resolveRateLimitKey", () => {
         connection: { remoteAddress: undefined },
       });
 
-      expect(() => resolveRateLimitKey(options, req)).toThrow(RateGuardError);
+      await expect(resolveRateLimitKey(options, req)).rejects.toThrow(
+        RateGuardError
+      );
     });
 
-    test("should throw RateGuardError with correct code", () => {
+    test("should throw RateGuardError with code RGEC-0006", async () => {
       const options = {
         type: "tokenBucket",
         storeType: "memory",
@@ -172,12 +191,28 @@ describe("resolveRateLimitKey", () => {
       });
 
       try {
-        resolveRateLimitKey(options, req);
+        await resolveRateLimitKey(options, req);
         fail("Expected RateGuardError to be thrown");
       } catch (err) {
         expect(err).toBeInstanceOf(RateGuardError);
         expect((err as RateGuardError).code).toBe("RGEC-0006");
       }
+    });
+
+    test("should throw when connection object is missing", async () => {
+      const options = {
+        type: "tokenBucket",
+        storeType: "memory",
+      } as const;
+
+      const req = mockRequest({
+        ip: undefined,
+        connection: undefined,
+      });
+
+      await expect(resolveRateLimitKey(options, req)).rejects.toThrow(
+        RateGuardError
+      );
     });
   });
 });

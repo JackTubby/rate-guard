@@ -4,20 +4,20 @@ export type RateLimiterOptions =
       store?: Store | null;         // OPTIONAL - handles store instance for redis
       timeFrame?: number;           // OPTIONAL - window length
       tokenLimit?: number;          // OPTIONAL - allowed tokens within the window
-      value?: string;               // OPTIONAL - value to use as the key optional as defaults to ip
+      keyGenerator?: (req: unknown) => string | Promise<string>;  // OPTIONAL - function to generate a custom key
       message?: unknown;            // OPTIONAL - an OPTIONAL message to return to users who exceed limit
       type: string;                 // REQUIRED - the type of algo to use
-      ttl?: number;                  // OPTIONAL - data set time to live
+      ttl?: number;                 // OPTIONAL - data set time to live
     }
   | {
       storeType: "redis";           // REQUIRED - type of storage to use
       store: RedisClient;           // REQUIRED - handles store instance for redis
       timeFrame?: number;           // OPTIONAL - window length
       tokenLimit?: number;          // OPTIONAL - allowed tokens within the window
-      value?: string;               // OPTIONAL - value to use as the key optional as defaults to ip
+      keyGenerator?: (req: unknown) => string | Promise<string>;  // OPTIONAL - function to generate a custom key
       message?: unknown;            // OPTIONAL - an OPTIONAL message to return to users who exceed limit
       type: string;                 // REQUIRED - the type of algo to use
-      ttl?: number;                  // OPTIONAL - data set time to live
+      ttl?: number;                 // OPTIONAL - data set time to live
     };
 
 
@@ -49,6 +49,9 @@ export interface TokenBucketOptions {
 export interface RateLimitResult {
   success: boolean;
   message: string;
+  tokensRemaining?: number | null;
+  tokensLimit?: number | null;
+  tokensReset?: number | null;
 }
 
 export interface FixedWindowOptions {
