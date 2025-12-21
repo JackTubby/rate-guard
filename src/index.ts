@@ -18,7 +18,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
     next: NextFunction
   ) {
     try {
-      const key = resolveRateLimitKey(options, req);
+      const key = await resolveRateLimitKey(options, req);
 
       const canProceed = await limiter.checkLimit(key);
       if (canProceed.success) {
