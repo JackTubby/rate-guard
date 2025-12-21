@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-beta.9] - 2025-12-21
+- First version out of beta
+- Update README.md file
+- Update Fixed Window algo to be per user not global
+- Namespace storage keys by algorithm type
+- Add response headers X-RateLimit-Remaining, X-RateLimit-Limit, X-RateLimit-Reset
+- Default ttl to timeframe if not set for redis storage
+- Update checking key is set logic
+- Test updates
+
 ## [0.1.0-beta.9] - 2025-12-04
 ### Added
 - (none)

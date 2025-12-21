@@ -1,4 +1,4 @@
-# Rate Guard (BETA)
+# Rate Guard
 
 A TypeScript rate limiting middleware for Express.js. Supports memory and Redis storage, Token Bucket and Fixed Window algorithms.
 
@@ -35,15 +35,16 @@ After exhausting your token limit, requests return `429 Too Many Requests`.
 
 ## Configuration
 
-| Option       | Type                               | Required | Default               | Description                          |
-| ------------ | ---------------------------------- | -------- | --------------------- | ------------------------------------ |
-| `storeType`  | `'memory'` \| `'redis'`            | Yes      | -                     | Storage backend                      |
-| `type`       | `'tokenBucket'` \| `'fixedWindow'` | Yes      | -                     | Rate limiting algorithm              |
-| `store`      | `RedisClient`                      | If Redis | -                     | Redis client instance                |
-| `tokenLimit` | `number`                           | No       | `50`                  | Requests allowed per window          |
-| `timeFrame`  | `number`                           | No       | `900000`              | Window length in ms (default 15 min) |
-| `ttl`        | `number`                           | No       | `86400000`            | Data expiry in ms (default 24 hours) |
-| `message`    | `string`                           | No       | `'Too many requests'` | Response message when limited        |
+| Option         | Type                               | Required | Default               | Description                          |
+| -------------- | ---------------------------------- | -------- | --------------------- | ------------------------------------ |
+| `storeType`    | `'memory'` \| `'redis'`            | Yes      | -                     | Storage backend                      |
+| `type`         | `'tokenBucket'` \| `'fixedWindow'` | Yes      | -                     | Rate limiting algorithm              |
+| `store`        | `RedisClient`                      | If Redis | -                     | Redis client instance                |
+| `tokenLimit`   | `number`                           | No       | `50`                  | Requests allowed per window          |
+| `timeFrame`    | `number`                           | No       | `900000`              | Window length in ms (default 15 min) |
+| `ttl`          | `number`                           | No       | `86400000`            | Data expiry in ms (default 24 hours) |
+| `message`      | `string`                           | No       | `'Too many requests'` | Response message when limited        |
+| `keyGenerator` | `(req) => string`                  | No       | `req.ip`              | Custom key resolver function         |
 
 ## Usage
 
@@ -106,14 +107,6 @@ const perUserLimiter = createRateLimiter({
   timeFrame: 60000,
 });
 
-const globalLimiter = createRateLimiter({
-  storeType: "memory",
-  type: "fixedWindow",
-  tokenLimit: 10000,
-  timeFrame: 60000,
-});
-
-app.use(globalLimiter); // API-wide cap
 app.get("/api", perUserLimiter, apiHandler); // Per-user limit
 ```
 
@@ -150,29 +143,29 @@ const limiter = createRateLimiter({
 
 ### Fixed Window
 
-Global rate limiting with full reset at window expiry. All users share the same token pool.
+Per-user rate limiting with full reset at window expiry.
 
 - Tokens reset completely when window expires
-- Shared across all users (global limit)
-- Key: `000` (single bucket)
+- Per-user by default (keyed by IP)
+- Key: client IP address (or custom via `keyGenerator`)
 
 ```javascript
 const limiter = createRateLimiter({
   storeType: "memory",
   type: "fixedWindow",
-  tokenLimit: 1000, // 1000 requests per window
+  tokenLimit: 1000, // 1000 requests per window per user
   timeFrame: 60000, // Window resets every 60 seconds
 });
 ```
 
 ### Comparison
 
-| Feature        | Token Bucket       | Fixed Window         |
-| -------------- | ------------------ | -------------------- |
-| Scope          | Per-user           | Global               |
-| Refill         | Gradual            | Full reset           |
-| Burst handling | Smooth             | Edge spikes possible |
-| Use case       | User rate limiting | API-wide caps        |
+| Feature        | Token Bucket      | Fixed Window         |
+| -------------- | ----------------- | -------------------- |
+| Scope          | Per-user          | Per-user             |
+| Refill         | Gradual           | Full reset           |
+| Burst handling | Smooth            | Edge spikes possible |
+| Use case       | Sustained traffic | Simple request caps  |
 
 ## Storage Backends
 
@@ -209,6 +202,7 @@ type RateLimiterOptions =
       timeFrame?: number;
       ttl?: number;
       message?: string;
+      keyGenerator?: (req: unknown) => string | Promise<string>;
     }
   | {
       storeType: "redis";
@@ -218,10 +212,21 @@ type RateLimiterOptions =
       timeFrame?: number;
       ttl?: number;
       message?: string;
+      keyGenerator?: (req: unknown) => string | Promise<string>;
     };
 ```
 
-### Response
+### Response Headers
+
+All responses include rate limit headers:
+
+| Header                  | Description                        |
+| ----------------------- | ---------------------------------- |
+| `X-RateLimit-Remaining` | Tokens remaining in current window |
+| `X-RateLimit-Limit`     | Total token limit                  |
+| `X-RateLimit-Reset`     | Window reset timestamp (ms)        |
+
+### Rate Limited Response
 
 When rate limited, returns:
 
@@ -237,10 +242,11 @@ Content-Type: application/json
 - [ ] Sliding Window Log algorithm
 - [ ] Sliding Window Counter algorithm
 - [ ] Leaky Bucket algorithm
-- [ ] Custom key resolver (`value` option)
-- [ ] Rate limit headers (`X-RateLimit-Remaining`, `X-RateLimit-Reset`)
+- [x] Token Bucket algorithm
+- [x] Fixed Window algorithm
+- [x] Custom key resolver (`keyGenerator` option)
 - [ ] Automatic cleanup for memory store
-- [ ] Custom response handlers
+- [x] Rate limit headers (`X-RateLimit-Remaining`, `X-RateLimit-Limit`, `X-RateLimit-Reset`)
 - [ ] Usage statistics / monitoring hooks (until implemented, manage Redis data directly)
 
 ## Author
