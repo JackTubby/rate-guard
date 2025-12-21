@@ -21,10 +21,12 @@ const createMockRedisClient = () => {
 describe("CustomRedisStore", () => {
   let mockRedis: ReturnType<typeof createMockRedisClient>;
   let store: CustomRedisStore;
-
+  let algo: "tokenBucket"
+  
   beforeEach(() => {
+    algo = 'tokenBucket'
     mockRedis = createMockRedisClient();
-    store = new CustomRedisStore(mockRedis);
+    store = new CustomRedisStore(mockRedis, algo);
     jest.clearAllMocks();
   });
 
@@ -33,7 +35,7 @@ describe("CustomRedisStore", () => {
       const result = await store.get("nonexistent");
 
       expect(result).toBeNull();
-      expect(mockRedis.get).toHaveBeenCalledWith("nonexistent");
+      expect(mockRedis.get).toHaveBeenCalledWith("rateGuard:tokenBucket:nonexistent");
     });
 
     test("should return parsed state when key exists", async () => {
@@ -75,7 +77,7 @@ describe("CustomRedisStore", () => {
       await store.set("test-key", state);
 
       expect(mockRedis.set).toHaveBeenCalledWith(
-        "test-key",
+        "rateGuard:tokenBucket:test-key",
         JSON.stringify(state)
       );
     });
@@ -90,7 +92,7 @@ describe("CustomRedisStore", () => {
       await store.set("test-key", state, 60000);
 
       expect(mockRedis.set).toHaveBeenCalledWith(
-        "test-key",
+        "rateGuard:tokenBucket:test-key",
         JSON.stringify(state),
         { PX: 60000 }
       );
@@ -106,7 +108,7 @@ describe("CustomRedisStore", () => {
       await store.set("test-key", state, 0);
 
       expect(mockRedis.set).toHaveBeenCalledWith(
-        "test-key",
+        "rateGuard:tokenBucket:test-key",
         JSON.stringify(state)
       );
     });
@@ -116,7 +118,7 @@ describe("CustomRedisStore", () => {
     test("should call unlink with correct key", async () => {
       await store.delete("test-key");
 
-      expect(mockRedis.unlink).toHaveBeenCalledWith("test-key");
+      expect(mockRedis.unlink).toHaveBeenCalledWith("rateGuard:tokenBucket:test-key");
     });
   });
 });

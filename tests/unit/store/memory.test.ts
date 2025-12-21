@@ -5,7 +5,7 @@ describe("MemoryStore", () => {
   let store: MemoryStore;
 
   beforeEach(() => {
-    store = new MemoryStore();
+    store = new MemoryStore("tokenBucket");
   });
 
   describe("get", () => {
