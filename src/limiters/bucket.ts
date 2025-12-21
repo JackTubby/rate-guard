@@ -25,7 +25,7 @@ class TokenBucketLimiter {
       await this.bucketStore.save(key, newState);
       return {
         success: true,
-        message: "Bucket created and token granted",
+        message: "Window created and token granted",
         tokensRemaining: this.options.tokenLimit - 1,
         tokensLimit: this.options.tokenLimit,
         tokensReset: this.options.timeFrame,
