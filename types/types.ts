@@ -49,6 +49,9 @@ export interface TokenBucketOptions {
 export interface RateLimitResult {
   success: boolean;
   message: string;
+  tokensRemaining?: number | null;
+  tokensLimit?: number | null;
+  tokensReset?: number | null;
 }
 
 export interface FixedWindowOptions {

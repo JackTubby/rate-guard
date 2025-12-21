@@ -23,13 +23,25 @@ class TokenBucketLimiter {
         this.options.tokenLimit - 1
       );
       await this.bucketStore.save(key, newState);
-      return { success: true, message: "Bucket created and token granted" };
+      return {
+        success: true,
+        message: "Bucket created and token granted",
+        tokensRemaining: this.options.tokenLimit - 1,
+        tokensLimit: this.options.tokenLimit,
+        tokensReset: this.options.timeFrame,
+      };
     }
 
     const refilled = this.refill(bucket);
 
     if (refilled.tokens < 1) {
-      return { success: false, message: "Rate limit exceeded" };
+      return {
+        success: false,
+        message: "Rate limit exceeded",
+        tokensRemaining: bucket.tokens,
+        tokensLimit: this.options.tokenLimit,
+        tokensReset: this.options.timeFrame,
+      };
     }
 
     const decremented: RateLimitState = {
@@ -37,7 +49,13 @@ class TokenBucketLimiter {
       tokens: refilled.tokens - 1,
     };
     await this.bucketStore.save(key, decremented);
-    return { success: true, message: "Token granted" };
+    return {
+      success: true,
+      message: "Token granted",
+      tokensRemaining: bucket.tokens,
+      tokensLimit: this.options.tokenLimit,
+      tokensReset: this.options.timeFrame,
+    };
   }
 
   private refill(bucket: RateLimitState): RateLimitState {

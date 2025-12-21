@@ -21,6 +21,11 @@ export function createRateLimiter(options: RateLimiterOptions) {
       const key = await resolveRateLimitKey(options, req);
 
       const canProceed = await limiter.checkLimit(key);
+      res.set({
+        "X-RateLimit-Remaining": String(canProceed.tokensRemaining),
+        "X-RateLimit-Limit": String(canProceed.tokensLimit),
+        "X-RateLimit-Reset": String(canProceed.tokensReset),
+      });
       if (canProceed.success) {
         next();
       } else {
