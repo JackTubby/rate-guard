@@ -1,8 +1,11 @@
 # Rate Guard
 
-A TypeScript rate limiting middleware for Express.js. Supports memory and Redis storage, Token Bucket and Fixed Window algorithms.
+[![npm version](https://img.shields.io/npm/v/rate-guard.svg)](https://www.npmjs.com/package/rate-guard)
+[![npm downloads](https://img.shields.io/npm/dm/rate-guard.svg)](https://www.npmjs.com/package/rate-guard)
+[![Tests](https://github.com/jacktubby/rate-guard/actions/workflows/test.yml/badge.svg)](https://github.com/jacktubby/rate-guard/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**badges - build status - coverage to go here**
+A TypeScript rate limiting middleware for Express.js. Supports memory and Redis storage, Token Bucket and Fixed Window algorithms.
 
 ## Installation
 
