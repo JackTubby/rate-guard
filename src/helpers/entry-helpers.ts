@@ -16,12 +16,13 @@ export async function resolveRateLimitKey(
   if (options.keyGenerator) {
     return options.keyGenerator(req);
   }
-  const key = req.ip || req.connection.remoteAddress;
 
-  if (typeof key !== "string") {
+  const key = req.ip || req.connection?.remoteAddress;
+
+  if (!key) {
     throw new RateGuardError(
       "RGEC-0006",
-      "Could not resolve rate limit key: req.ip and req.connection.remoteAddress are both missing"
+      "Could not resolve rate limit key: req.ip and req.connection.remoteAddress are both missing one must be valid"
     );
   }
 
