@@ -1,8 +1,3 @@
-- Actually implement cleanup properly
 - Implement LRU for memory
-- getRemainingTokens method for observability (useful for rate limit headers like X-RateLimit-Remaining)
 - redis atomic lua script look into
 - Readme: "Concurrency Considerations" section explaining that the default implementation isn't atomic, and users needing strict enforcement under high concurrency should implement their own atomic store. 
-- Add response headers
-- Add keyGenerator function instead of custom header
-- Remove hardcoded "000" should follow other algos -- use redis multi key like fixedbucket: etc..
