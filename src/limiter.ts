@@ -38,19 +38,19 @@ class RateLimiterFactory {
       case "fixedWindow":
         return new FixedWindowLimiter(rateLimitStore, limiterOptions);
       default:
-        throw new RateGuardError(
-          "RGEC-0007",
-          `${normalisedOptions.type}`
-        );
+        throw new RateGuardError("RGEC-0007", `${normalisedOptions.type}`);
     }
   }
 
   private static normalizeOptions(options: RateLimiterOptions) {
+    const timeFrame = options?.timeFrame ?? 900000;
+    const tokenLimit = options?.tokenLimit ?? 50;
+
     return {
-      timeFrame: options?.timeFrame ?? 900000,
-      tokenLimit: options?.tokenLimit ?? 50,
-      ttl: options?.ttl ?? 86400000,
       ...options,
+      timeFrame,
+      tokenLimit,
+      ttl: options?.ttl ?? timeFrame,
     };
   }
 }
