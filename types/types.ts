@@ -29,6 +29,11 @@ export interface RateLimitState {
   formattedWindowMs: string;
 }
 
+export interface SlidingWindowEvent {
+  score: number;
+  value: number;
+}
+
 export interface Store {
   get(key: string): Promise<RateLimitState | null>;
   set(key: string, value: RateLimitState, ttl?: number): Promise<void>;
