@@ -28,19 +28,21 @@ export function createRateLimiter(options: RateLimiterOptions) {
       });
       if (canProceed.success) {
         next();
-      } else {
-        return res
-          .status(429)
-          .json({ message: options?.message ?? "Too many requests" });
+        return;
       }
+      res
+        .status(429)
+        .json({ message: options?.message ?? "Too many requests" });
     } catch (err) {
       if (err instanceof RateGuardError) {
-        return res.status(500).json({
+        res.status(500).json({
           code: err.code,
           name: err.name,
           message: err.message,
         });
+        return;
       }
+      next(err);
     }
   };
 }
