@@ -1,27 +1,35 @@
+export type StoreTypes = "redis" | "memory";
+
 export type RateLimiterOptions =
   | {
-      storeType: "memory";          // REQUIRED - type of storage to use
+      type: 'tokenBucket';          // REQUIRED - the type of algo to use
+      storeType: StoreTypes;        // REQUIRED - type of storage to use
       store?: Store | null;         // OPTIONAL - handles store instance for redis
       timeFrame?: number;           // OPTIONAL - window length
       tokenLimit?: number;          // OPTIONAL - allowed tokens within the window
       keyGenerator?: (req: unknown) => string | Promise<string>;  // OPTIONAL - function to generate a custom key
       message?: unknown;            // OPTIONAL - an OPTIONAL message to return to users who exceed limit
-      type: string;                 // REQUIRED - the type of algo to use
       ttl?: number;                 // OPTIONAL - data set time to live
     }
   | {
-      storeType: "redis";           // REQUIRED - type of storage to use
+      type: 'fixedWindow';          // REQUIRED - the type of algo to use
+      storeType: StoreTypes;        // REQUIRED - type of storage to use
       store: RedisClient;           // REQUIRED - handles store instance for redis
       timeFrame?: number;           // OPTIONAL - window length
       tokenLimit?: number;          // OPTIONAL - allowed tokens within the window
       keyGenerator?: (req: unknown) => string | Promise<string>;  // OPTIONAL - function to generate a custom key
       message?: unknown;            // OPTIONAL - an OPTIONAL message to return to users who exceed limit
-      type: string;                 // REQUIRED - the type of algo to use
       ttl?: number;                 // OPTIONAL - data set time to live
+    }
+  | {
+      type: 'slidingWindow';
+      storeType: StoreTypes;
+      store: RedisClient;
+      timeFrame?: number;
+      keyGenerator?: (req: unknown) => string | Promise<string>
+      message?: unknown;
+      ttl?: number;
     };
-
-
-export type StoreTypes = "redis" | "memory";
 
 export interface RateLimitState {
   tokens: number;
@@ -31,7 +39,7 @@ export interface RateLimitState {
 
 export interface SlidingWindowEvent {
   score: number;
-  value: number;
+  value: string;
 }
 
 export interface Store {
@@ -42,8 +50,13 @@ export interface Store {
 
 export interface RedisClient {
   get(key: string): Promise<string | null>;
-  set(key: string, value: string, options?: { PX: number }): Promise<void>;
-  unlink(key: string): Promise<void>;
+  set(key: string, value: string, options?: { PX: number }): Promise<string | null>;
+  unlink(key: string): Promise<number>;
+  zAdd(key: string, members: SlidingWindowEvent | SlidingWindowEvent[]): Promise<number>;
+  zRange(key: string, start: number | string, stop: number | string): Promise<string[]>;
+  zRemRangeByScore(key: string, min: number | string, max: number | string): Promise<number>;
+  zCard(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
 }
 
 export interface TokenBucketOptions {

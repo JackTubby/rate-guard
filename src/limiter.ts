@@ -1,5 +1,7 @@
 import BucketLimiter from "./limiters/bucket";
 import FixedWindowLimiter from "./limiters/fixed-window";
+import { SlidingWindowLogLimiter } from "./limiters/sliding-window-log";
+import { SlidingWindowStore } from "./store/sliding-window-store";
 import { RateLimiterOptions } from "../types/types";
 import { RateGuardError } from "./errors/errors";
 import CustomRedisStore from "./store/redis";
@@ -9,6 +11,19 @@ import { RateLimitStore } from "./store/rate-limit-store";
 class RateLimiterFactory {
   static create(options: RateLimiterOptions) {
     const normalisedOptions = RateLimiterFactory.normalizeOptions(options);
+
+    const limiterOptions = {
+      tokenLimit: normalisedOptions.tokenLimit,
+      timeFrame: normalisedOptions.timeFrame,
+    };
+
+    if (options.type === "slidingWindow") {
+      if (options.storeType !== "redis") {
+        throw new RateGuardError("RGEC-0008", `${(options as any).storeType}`);
+      }
+      const slidingStore = new SlidingWindowStore(options.store);
+      return new SlidingWindowLogLimiter(slidingStore, limiterOptions);
+    }
 
     let store;
     switch (normalisedOptions.storeType) {
@@ -26,11 +41,6 @@ class RateLimiterFactory {
     }
 
     const rateLimitStore = new RateLimitStore(store, normalisedOptions.ttl);
-
-    const limiterOptions = {
-      tokenLimit: normalisedOptions.tokenLimit,
-      timeFrame: normalisedOptions.timeFrame,
-    };
 
     switch (options.type) {
       case "tokenBucket":
